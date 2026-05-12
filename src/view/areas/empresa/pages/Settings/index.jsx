@@ -115,7 +115,9 @@ const CompanySettings = () => {
             <S.TemplateTitleRow>
               <S.SubsectionTitle>Contexto da IA</S.SubsectionTitle>
               <S.SupportingText>
-                Essas informações orientam o Resolve Assist quando ele responder clientes em tickets abertos.
+                Essas informações orientam o Resolve Assist quando ele responder clientes em tickets abertos. Ele não
+                toma iniciativa, não aciona atendimento e deve dizer que não sabe quando não houver informação
+                registrada.
               </S.SupportingText>
             </S.TemplateTitleRow>
             <S.FieldBlock>
@@ -138,7 +140,7 @@ const CompanySettings = () => {
               <S.FieldLabel htmlFor="ai-instructions">Instruções para a IA:</S.FieldLabel>
               <S.TextArea
                 id="ai-instructions"
-                placeholder="Ex.: Sempre peça o número do pedido antes de orientar sobre entrega. Se houver pedido de reembolso, explique que a equipe humana continuará o atendimento."
+                placeholder="Ex.: Responda somente com dados registrados. Se não houver prazo, protocolo, política ou orientação cadastrada, diga que não há informação registrada."
                 {...companyForm.register("aiInstructions", {
                   maxLength: {
                     value: 4000,
@@ -154,7 +156,7 @@ const CompanySettings = () => {
               <S.FieldLabel htmlFor="ai-examples">Exemplos de casos e respostas:</S.FieldLabel>
               <S.TextArea
                 id="ai-examples"
-                placeholder={"Ex.: Caso: cliente informa atraso na entrega. Resposta esperada: pedir número do pedido e confirmar que a equipe verificará o rastreio.\nCaso: produto chegou com defeito. Resposta esperada: solicitar fotos, nota fiscal e detalhes do defeito."}
+                placeholder={"Ex.: Caso: cliente pergunta o prazo de entrega, mas o prazo não está no contexto. Resposta esperada: não há informação registrada sobre o prazo.\nCaso: cliente pergunta a política de troca e ela está cadastrada. Resposta esperada: responder apenas a política cadastrada."}
                 {...companyForm.register("aiExamples", {
                   maxLength: {
                     value: 4000,
