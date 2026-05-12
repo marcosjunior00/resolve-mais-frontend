@@ -141,6 +141,11 @@ export const FieldLabel = styled.label`
     font-size: 0.95rem;
 `;
 
+export const FieldError = styled.span`
+    color: #c2410c;
+    font-size: 12px;
+`;
+
 export const TextArea = styled.textarea`
     width: 100%;
     min-height: 110px;

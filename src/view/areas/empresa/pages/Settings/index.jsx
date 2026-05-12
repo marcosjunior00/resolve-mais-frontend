@@ -18,6 +18,9 @@ const CompanySettings = () => {
     defaultValues: {
       name: "",
       description: "",
+      aiContext: "",
+      aiInstructions: "",
+      aiExamples: "",
     },
   });
 
@@ -32,12 +35,15 @@ const CompanySettings = () => {
         companyForm.reset({
           name: companyData.name || "",
           description: companyData.description || "",
+          aiContext: companyData.aiContext || "",
+          aiInstructions: companyData.aiInstructions || "",
+          aiExamples: companyData.aiExamples || "",
         });
       }
     } catch (error) {
       showSnack({
         variant: "error",
-        message: error?.response?.data?.message || "Nao foi possivel carregar os dados da empresa.",
+        message: error?.response?.data?.message || "Não foi possível carregar os dados da empresa.",
       });
     } finally {
       setLoading(false);
@@ -54,6 +60,9 @@ const CompanySettings = () => {
       const response = await companyAdminService.updateCompanyProfile({
         name: formData.name,
         description: formData.description,
+        aiContext: formData.aiContext,
+        aiInstructions: formData.aiInstructions,
+        aiExamples: formData.aiExamples,
       });
 
       setCompany(response.company || company);
@@ -96,12 +105,67 @@ const CompanySettings = () => {
               errors={companyForm.formState.errors.name}
             />
             <Input
-              label="Descricao:"
+              label="Descrição:"
               placeholder="Descreva sua empresa"
               type="text"
               register={companyForm.register("description")}
             />
             <Input label="CNPJ:" placeholder="CNPJ" type="text" register={{}} value={company?.cnpj || ""} disabled />
+            <S.Divider />
+            <S.TemplateTitleRow>
+              <S.SubsectionTitle>Contexto da IA</S.SubsectionTitle>
+              <S.SupportingText>
+                Essas informações orientam o Resolve Assist quando ele responder clientes em tickets abertos.
+              </S.SupportingText>
+            </S.TemplateTitleRow>
+            <S.FieldBlock>
+              <S.FieldLabel htmlFor="ai-context">Contexto sobre a empresa:</S.FieldLabel>
+              <S.TextArea
+                id="ai-context"
+                placeholder="Ex.: Somos uma loja de eletrônicos com suporte para pedidos, garantia, trocas e dúvidas sobre entrega."
+                {...companyForm.register("aiContext", {
+                  maxLength: {
+                    value: 4000,
+                    message: "O contexto deve ter no máximo 4000 caracteres",
+                  },
+                })}
+              />
+              {companyForm.formState.errors.aiContext && (
+                <S.FieldError>{companyForm.formState.errors.aiContext.message}</S.FieldError>
+              )}
+            </S.FieldBlock>
+            <S.FieldBlock>
+              <S.FieldLabel htmlFor="ai-instructions">Instruções para a IA:</S.FieldLabel>
+              <S.TextArea
+                id="ai-instructions"
+                placeholder="Ex.: Sempre peça o número do pedido antes de orientar sobre entrega. Se houver pedido de reembolso, explique que a equipe humana continuará o atendimento."
+                {...companyForm.register("aiInstructions", {
+                  maxLength: {
+                    value: 4000,
+                    message: "As instruções devem ter no máximo 4000 caracteres",
+                  },
+                })}
+              />
+              {companyForm.formState.errors.aiInstructions && (
+                <S.FieldError>{companyForm.formState.errors.aiInstructions.message}</S.FieldError>
+              )}
+            </S.FieldBlock>
+            <S.FieldBlock>
+              <S.FieldLabel htmlFor="ai-examples">Exemplos de casos e respostas:</S.FieldLabel>
+              <S.TextArea
+                id="ai-examples"
+                placeholder={"Ex.: Caso: cliente informa atraso na entrega. Resposta esperada: pedir número do pedido e confirmar que a equipe verificará o rastreio.\nCaso: produto chegou com defeito. Resposta esperada: solicitar fotos, nota fiscal e detalhes do defeito."}
+                {...companyForm.register("aiExamples", {
+                  maxLength: {
+                    value: 4000,
+                    message: "Os exemplos devem ter no máximo 4000 caracteres",
+                  },
+                })}
+              />
+              {companyForm.formState.errors.aiExamples && (
+                <S.FieldError>{companyForm.formState.errors.aiExamples.message}</S.FieldError>
+              )}
+            </S.FieldBlock>
             <S.ButtonsGroup>
               <Button variant="primary" type="submit" disabled={savingCompany}>
                 Salvar dados da empresa
