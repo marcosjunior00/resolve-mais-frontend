@@ -143,8 +143,28 @@ const PendingTickets = () => {
     }
   };
 
+  const getCompanyName = (ticket) =>
+    ticket?.company?.name || ticket?.companyName || ticket?.empresa || "Resolve +";
+
+  const getComplaintTitleName = (ticket) =>
+    ticket?.complaintTitle?.title ||
+    ticket?.complaintTitleName ||
+    ticket?.tituloReclamacao ||
+    "Sem título registrado";
+
+  const getTicketDescription = (ticket) =>
+    ticket?.description || ticket?.descricao || "Sem descrição disponível.";
+
+  const getTicketProtocol = (ticket) =>
+    ticket?.protocol || ticket?.protocolo || buildTicketProtocol(ticket?.id);
+
+  const getAssignedToName = (ticket) =>
+    ticket?.assignedTo?.name || ticket?.assignedToName || ticket?.atribuidoPara || null;
+
+  const getCreatedAt = (ticket) => ticket?.createdAt || ticket?.criadoEm;
+
   const getUpdatedAt = (ticket) =>
-    ticket?.atualizadoEm || ticket?.updatedAt || ticket?.criadoEm || ticket?.createdAt;
+    ticket?.updatedAt || ticket?.atualizadoEm || ticket?.createdAt || ticket?.criadoEm;
 
   if (loading) {
     return (
@@ -199,7 +219,7 @@ const PendingTickets = () => {
                 <S.TicketMain>
                   <S.TicketInfo>
                     <S.TicketTitle>
-                      Chamado {ticket.empresa || "Resolve +"}
+                      Chamado {getCompanyName(ticket)}
                     </S.TicketTitle>
                     <S.TicketStatus $status={ticket.status}>
                       {getStatusText(ticket.status)}
@@ -207,28 +227,26 @@ const PendingTickets = () => {
                   </S.TicketInfo>
 
                   <S.TicketSubject>
-                    {ticket.tituloReclamacao || "Sem título registrado"}
+                    {getComplaintTitleName(ticket)}
                   </S.TicketSubject>
 
                   <S.TicketDescription>
-                    {ticket.descricao || "Sem descrição disponível."}
+                    {getTicketDescription(ticket)}
                   </S.TicketDescription>
 
                   <S.TicketMetaGrid>
                     <S.TicketMetaItem>
                       <S.MetaLabel>Protocolo</S.MetaLabel>
-                      <S.MetaValue>
-                        {ticket.protocolo || buildTicketProtocol(ticket.id)}
-                      </S.MetaValue>
+                      <S.MetaValue>{getTicketProtocol(ticket)}</S.MetaValue>
                     </S.TicketMetaItem>
                     <S.TicketMetaItem>
                       <S.MetaLabel>Última movimentação</S.MetaLabel>
                       <S.MetaValue>{formatDate(getUpdatedAt(ticket))}</S.MetaValue>
                     </S.TicketMetaItem>
-                    {ticket.atribuidoPara ? (
+                    {getAssignedToName(ticket) ? (
                       <S.TicketMetaItem>
                         <S.MetaLabel>Responsável</S.MetaLabel>
-                        <S.MetaValue>{ticket.atribuidoPara}</S.MetaValue>
+                        <S.MetaValue>{getAssignedToName(ticket)}</S.MetaValue>
                       </S.TicketMetaItem>
                     ) : null}
                   </S.TicketMetaGrid>
@@ -292,12 +310,12 @@ const PendingTickets = () => {
 
             <S.ModalInfo>
               <strong>Empresa:</strong>{" "}
-              {selectedTicket.empresa || "Não informada"}
+              {getCompanyName(selectedTicket)}
             </S.ModalInfo>
 
-            {selectedTicket.tituloReclamacao ? (
+            {getComplaintTitleName(selectedTicket) ? (
               <S.ModalInfo>
-                <strong>Título:</strong> {selectedTicket.tituloReclamacao}
+                <strong>Título:</strong> {getComplaintTitleName(selectedTicket)}
               </S.ModalInfo>
             ) : null}
 
@@ -310,21 +328,17 @@ const PendingTickets = () => {
 
             <S.ModalInfo>
               <strong>Protocolo:</strong>{" "}
-              {selectedTicket.protocolo || buildTicketProtocol(selectedTicket.id)}
+              {getTicketProtocol(selectedTicket)}
             </S.ModalInfo>
 
             <S.ModalInfo>
               <strong>Criado em:</strong>{" "}
-              {formatDate(selectedTicket.criadoEm || selectedTicket.createdAt)}
+              {formatDate(getCreatedAt(selectedTicket))}
             </S.ModalInfo>
 
             <S.ModalInfo>
               <strong>Descrição:</strong>
-              <S.DescriptionBox>
-                {selectedTicket.descricao ||
-                  selectedTicket.description ||
-                  "Sem descrição disponível."}
-              </S.DescriptionBox>
+              <S.DescriptionBox>{getTicketDescription(selectedTicket)}</S.DescriptionBox>
             </S.ModalInfo>
 
             <S.ModalActions>

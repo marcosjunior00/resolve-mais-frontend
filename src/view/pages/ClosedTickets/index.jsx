@@ -218,8 +218,26 @@ const ClosedTickets = () => {
   const canReopenTicket = (ticket) =>
     REOPENABLE_STATUSES.includes(String(ticket?.status || "").toLowerCase());
 
+  const getCompanyName = (ticket) =>
+    ticket?.company?.name || ticket?.companyName || "Resolve +";
+
+  const getComplaintTitleName = (ticket) =>
+    ticket?.complaintTitle?.title ||
+    ticket?.complaintTitleName ||
+    "Sem título registrado";
+
+  const getTicketDescription = (ticket) =>
+    ticket?.description || "Sem descrição disponível.";
+
+  const getTicketProtocol = (ticket) =>
+    ticket?.protocol || buildTicketProtocol(ticket?.id);
+
+  const getCreatedAt = (ticket) => ticket?.createdAt;
+
   const getFinishedAt = (ticket) =>
-    ticket?.finalizadoEm || ticket?.closed_at || ticket?.closedAt || ticket?.updatedAt;
+    ticket?.closedAt ||
+    ticket?.closed_at ||
+    ticket?.updatedAt;
 
   const handlePageSizeChange = (event) => {
     setPageSize(Number(event.target.value));
@@ -329,7 +347,7 @@ const ClosedTickets = () => {
                 <S.TicketMain>
                   <S.TicketInfo>
                     <S.TicketTitle>
-                      Chamado {ticket.empresa || "Resolve +"}
+                      Chamado {getCompanyName(ticket)}
                     </S.TicketTitle>
 
                     <S.TicketStatus $status={ticket.status}>
@@ -338,17 +356,17 @@ const ClosedTickets = () => {
                   </S.TicketInfo>
 
                   <S.TicketSubject>
-                    {ticket.tituloReclamacao || "Sem título registrado"}
+                    {getComplaintTitleName(ticket)}
                   </S.TicketSubject>
 
                   <S.TicketDescription>
-                    {ticket.descricao || "Sem descrição disponível."}
+                    {getTicketDescription(ticket)}
                   </S.TicketDescription>
 
                   <S.TicketMetaGrid>
                     <S.TicketMetaItem>
                       <S.MetaLabel>Protocolo</S.MetaLabel>
-                      <S.MetaValue>{buildTicketProtocol(ticket.id)}</S.MetaValue>
+                      <S.MetaValue>{getTicketProtocol(ticket)}</S.MetaValue>
                     </S.TicketMetaItem>
                     <S.TicketMetaItem>
                       <S.MetaLabel>Finalizado em</S.MetaLabel>
@@ -419,12 +437,12 @@ const ClosedTickets = () => {
 
             <S.ModalInfo>
               <strong>Empresa:</strong>{" "}
-              {selectedTicket.empresa || "Não informada"}
+              {getCompanyName(selectedTicket)}
             </S.ModalInfo>
 
-            {selectedTicket.tituloReclamacao ? (
+            {getComplaintTitleName(selectedTicket) ? (
               <S.ModalInfo>
-                <strong>Título:</strong> {selectedTicket.tituloReclamacao}
+                <strong>Título:</strong> {getComplaintTitleName(selectedTicket)}
               </S.ModalInfo>
             ) : null}
 
@@ -437,11 +455,11 @@ const ClosedTickets = () => {
 
             <S.ModalInfo>
                 <strong>Protocolo:</strong>{" "}
-              {buildTicketProtocol(selectedTicket.id)}
+              {getTicketProtocol(selectedTicket)}
             </S.ModalInfo>
 
             <S.ModalInfo>
-              <strong>Criado em:</strong> {formatDate(selectedTicket.criadoEm)}
+              <strong>Criado em:</strong> {formatDate(getCreatedAt(selectedTicket))}
             </S.ModalInfo>
 
             {(selectedTicket.status === "finalizado" ||
@@ -454,9 +472,7 @@ const ClosedTickets = () => {
 
             <S.ModalInfo>
               <strong>Descrição:</strong>
-              <S.DescriptionBox>
-                {selectedTicket.descricao || "Sem descrição disponível."}
-              </S.DescriptionBox>
+              <S.DescriptionBox>{getTicketDescription(selectedTicket)}</S.DescriptionBox>
             </S.ModalInfo>
 
             <S.ModalActions>
@@ -491,7 +507,7 @@ const ClosedTickets = () => {
           <S.ChatModalContent onClick={(event) => event.stopPropagation()}>
             <S.ModalTitle>
               Conversa do chamado{" "}
-              {chatHistory.ticket?.id ? buildTicketProtocol(chatHistory.ticket.id) : ""}
+              {chatHistory.ticket?.id ? getTicketProtocol(chatHistory.ticket) : ""}
             </S.ModalTitle>
 
             <S.ChatModalSubtitle>
