@@ -1,12 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import LoggedHeader from "../../../components/LoggedHeader";
 import { useSnack } from "../../../contexts/SnackContext";
 import { ticketService } from "../../../services/ticketService";
+import {
+  buildTicketProtocol,
+  getMessageSenderLabel,
+  getMessageTagLabel,
+} from "../../../utils/ticket";
 import * as S from "./styles";
 
 const REOPENABLE_STATUSES = ["fechado", "finalizado", "resolvido"];
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 const ClosedTickets = () => {
   const navigate = useNavigate();
@@ -14,19 +21,48 @@ const ClosedTickets = () => {
 
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalTickets, setTotalTickets] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [reopeningTicketId, setReopeningTicketId] = useState(null);
+  const [chatHistory, setChatHistory] = useState({
+    isOpen: false,
+    loading: false,
+    error: "",
+    ticket: null,
+    messages: [],
+  });
 
-  useEffect(() => {
-    loadTickets();
-  }, []);
+  const firstVisibleTicketIndex =
+    totalTickets === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastVisibleTicketIndex =
+    totalTickets === 0
+      ? 0
+      : Math.min((currentPage - 1) * pageSize + tickets.length, totalTickets);
 
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async ({
+    page = currentPage,
+    pageSize: requestedPageSize = pageSize,
+  } = {}) => {
     try {
-      const response = await ticketService.getUserClosedTickets();
+      const response = await ticketService.getUserClosedTickets({
+        page,
+        pageSize: requestedPageSize,
+      });
 
       if (response.status === 200) {
         setTickets(response.tickets || []);
+        setTotalTickets(Number(response.pagination?.total || 0));
+        setTotalPages(Number(response.pagination?.totalPages || 1));
+
+        if (
+          response.pagination?.page &&
+          Number(response.pagination.page) !== currentPage
+        ) {
+          setCurrentPage(Number(response.pagination.page));
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar tickets:", error);
@@ -49,7 +85,11 @@ const ClosedTickets = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, navigate, pageSize, showSnack]);
+
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
 
   const openDetails = (ticket) => {
     setSelectedTicket(ticket);
@@ -58,6 +98,90 @@ const ClosedTickets = () => {
   const closeModal = () => {
     setSelectedTicket(null);
   };
+
+  const closeChatHistory = () => {
+    setChatHistory({
+      isOpen: false,
+      loading: false,
+      error: "",
+      ticket: null,
+      messages: [],
+    });
+  };
+
+  const openChatHistory = async (ticket) => {
+    const targetTicketId = String(ticket.id);
+
+    setChatHistory({
+      isOpen: true,
+      loading: true,
+      error: "",
+      ticket,
+      messages: [],
+    });
+
+    try {
+      const response = await ticketService.getTicketMessages(ticket.id);
+
+      if (response?.status >= 400) {
+        throw new Error(
+          response.message || "Não foi possível carregar a conversa do chamado.",
+        );
+      }
+
+      setChatHistory((previous) => {
+        if (String(previous.ticket?.id || "") !== targetTicketId) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          loading: false,
+          error: "",
+          ticket: response.ticket || ticket,
+          messages: response.messages || [],
+        };
+      });
+    } catch (error) {
+      setChatHistory((previous) => {
+        if (String(previous.ticket?.id || "") !== targetTicketId) {
+          return previous;
+        }
+
+        return {
+          ...previous,
+          loading: false,
+          error:
+            error?.response?.data?.message ||
+            error?.message ||
+            "Não foi possível carregar a conversa do chamado.",
+        };
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (!selectedTicket && !chatHistory.isOpen) return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const handleEscapeKey = (event) => {
+      if (event.key !== "Escape") return;
+
+      if (chatHistory.isOpen) {
+        closeChatHistory();
+      } else {
+        closeModal();
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [chatHistory.isOpen, selectedTicket]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Data não disponível";
@@ -94,6 +218,14 @@ const ClosedTickets = () => {
   const canReopenTicket = (ticket) =>
     REOPENABLE_STATUSES.includes(String(ticket?.status || "").toLowerCase());
 
+  const getFinishedAt = (ticket) =>
+    ticket?.finalizadoEm || ticket?.closed_at || ticket?.closedAt || ticket?.updatedAt;
+
+  const handlePageSizeChange = (event) => {
+    setPageSize(Number(event.target.value));
+    setCurrentPage(1);
+  };
+
   const handleReopenTicket = async (ticket) => {
     if (!ticket?.id) return;
 
@@ -111,6 +243,11 @@ const ClosedTickets = () => {
       setTickets((previous) =>
         previous.filter((item) => String(item.id) !== String(ticket.id)),
       );
+      const nextTotalTickets = Math.max(0, totalTickets - 1);
+      const nextTotalPages = Math.max(1, Math.ceil(nextTotalTickets / pageSize));
+      setTotalTickets(nextTotalTickets);
+      setTotalPages(nextTotalPages);
+      setCurrentPage((page) => Math.min(page, nextTotalPages));
       setSelectedTicket((current) =>
         String(current?.id) === String(ticket.id) ? null : current,
       );
@@ -155,19 +292,41 @@ const ClosedTickets = () => {
             atendimento.
           </S.Subtitle>
         </div>
+        <S.HeaderCount>
+          {totalTickets} chamado{totalTickets === 1 ? "" : "s"}
+        </S.HeaderCount>
       </S.Header>
 
-      {tickets.length === 0 ? (
+      {totalTickets === 0 ? (
         <S.EmptyState>Nenhum ticket finalizado encontrado.</S.EmptyState>
       ) : (
-        <S.TicketsList>
-          {tickets.map((ticket) => {
+        <>
+          <S.ListToolbar>
+            <S.PageSizeControl>
+              <span>Chamados por página</span>
+              <S.PageSizeSelect value={pageSize} onChange={handlePageSizeChange}>
+                {PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </S.PageSizeSelect>
+            </S.PageSizeControl>
+
+            <S.PageRange>
+              Mostrando {firstVisibleTicketIndex}-{lastVisibleTicketIndex} de{" "}
+              {totalTickets}
+            </S.PageRange>
+          </S.ListToolbar>
+
+          <S.TicketsList>
+            {tickets.map((ticket) => {
             const isReopening = reopeningTicketId === ticket.id;
             const canReopen = canReopenTicket(ticket);
 
             return (
               <S.TicketCard key={ticket.id}>
-                <S.TicketHeader>
+                <S.TicketMain>
                   <S.TicketInfo>
                     <S.TicketTitle>
                       Chamado {ticket.empresa || "Resolve +"}
@@ -178,33 +337,79 @@ const ClosedTickets = () => {
                     </S.TicketStatus>
                   </S.TicketInfo>
 
-                  <S.TicketActions>
-                    <S.VerDetalhesButton onClick={() => openDetails(ticket)}>
-                      Ver detalhes
-                    </S.VerDetalhesButton>
+                  <S.TicketSubject>
+                    {ticket.tituloReclamacao || "Sem título registrado"}
+                  </S.TicketSubject>
 
-                    {canReopen ? (
-                      <S.ReopenButton
-                        onClick={() => handleReopenTicket(ticket)}
-                        disabled={isReopening}
-                      >
-                        {isReopening ? "Reabrindo..." : "Reabrir chamado"}
-                      </S.ReopenButton>
-                    ) : null}
-                  </S.TicketActions>
-                </S.TicketHeader>
+                  <S.TicketDescription>
+                    {ticket.descricao || "Sem descrição disponível."}
+                  </S.TicketDescription>
 
-                <S.TicketProtocol>
-                  Protocolo: {`3330${ticket.id.toString().padStart(4, "0")}`}
-                </S.TicketProtocol>
+                  <S.TicketMetaGrid>
+                    <S.TicketMetaItem>
+                      <S.MetaLabel>Protocolo</S.MetaLabel>
+                      <S.MetaValue>{buildTicketProtocol(ticket.id)}</S.MetaValue>
+                    </S.TicketMetaItem>
+                    <S.TicketMetaItem>
+                      <S.MetaLabel>Finalizado em</S.MetaLabel>
+                      <S.MetaValue>{formatDate(getFinishedAt(ticket))}</S.MetaValue>
+                    </S.TicketMetaItem>
+                  </S.TicketMetaGrid>
+                </S.TicketMain>
 
-                <S.TicketDate>
-                  Finalizado em: {formatDate(ticket.closed_at)}
-                </S.TicketDate>
+                <S.TicketActions>
+                  <S.VerDetalhesButton onClick={() => openDetails(ticket)}>
+                    Ver detalhes
+                  </S.VerDetalhesButton>
+
+                  <S.ChatHistoryButton onClick={() => openChatHistory(ticket)}>
+                    Ver conversa
+                  </S.ChatHistoryButton>
+
+                  {canReopen ? (
+                    <S.ReopenButton
+                      onClick={() => handleReopenTicket(ticket)}
+                      disabled={isReopening}
+                    >
+                      {isReopening ? "Reabrindo..." : "Reabrir chamado"}
+                    </S.ReopenButton>
+                  ) : null}
+                </S.TicketActions>
               </S.TicketCard>
             );
-          })}
-        </S.TicketsList>
+            })}
+          </S.TicketsList>
+
+          <S.PaginationBar>
+            <S.PaginationButton
+              type="button"
+              $icon
+              aria-label="Página anterior"
+              title="Página anterior"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </S.PaginationButton>
+
+            <S.PageIndicator>
+              Página {currentPage} de {totalPages}
+            </S.PageIndicator>
+
+            <S.PaginationButton
+              type="button"
+              $icon
+              aria-label="Próxima página"
+              title="Próxima página"
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={currentPage >= totalPages}
+            >
+              <ChevronRight aria-hidden="true" />
+            </S.PaginationButton>
+          </S.PaginationBar>
+        </>
       )}
 
       {selectedTicket ? (
@@ -231,8 +436,8 @@ const ClosedTickets = () => {
             </S.ModalInfo>
 
             <S.ModalInfo>
-              <strong>Protocolo:</strong>{" "}
-              {`3330${selectedTicket.id.toString().padStart(4, "0")}`}
+                <strong>Protocolo:</strong>{" "}
+              {buildTicketProtocol(selectedTicket.id)}
             </S.ModalInfo>
 
             <S.ModalInfo>
@@ -243,7 +448,7 @@ const ClosedTickets = () => {
               selectedTicket.status === "fechado") && (
               <S.ModalInfo>
                 <strong>Finalizado em:</strong>{" "}
-                {formatDate(selectedTicket.closed_at)}
+                {formatDate(getFinishedAt(selectedTicket))}
               </S.ModalInfo>
             )}
 
@@ -257,6 +462,15 @@ const ClosedTickets = () => {
             <S.ModalActions>
               <S.SecondaryButton onClick={closeModal}>Fechar</S.SecondaryButton>
 
+              <S.SecondaryButton
+                onClick={() => {
+                  closeModal();
+                  openChatHistory(selectedTicket);
+                }}
+              >
+                Ver conversa
+              </S.SecondaryButton>
+
               {canReopenTicket(selectedTicket) ? (
                 <S.CloseButton
                   onClick={() => handleReopenTicket(selectedTicket)}
@@ -269,6 +483,86 @@ const ClosedTickets = () => {
               ) : null}
             </S.ModalActions>
           </S.ModalContent>
+        </S.ModalOverlay>
+      ) : null}
+
+      {chatHistory.isOpen ? (
+        <S.ModalOverlay onClick={closeChatHistory}>
+          <S.ChatModalContent onClick={(event) => event.stopPropagation()}>
+            <S.ModalTitle>
+              Conversa do chamado{" "}
+              {chatHistory.ticket?.id ? buildTicketProtocol(chatHistory.ticket.id) : ""}
+            </S.ModalTitle>
+
+            <S.ChatModalSubtitle>
+              Histórico completo das mensagens registradas neste ticket.
+            </S.ChatModalSubtitle>
+
+            {chatHistory.loading ? (
+              <S.ChatEmptyState>Carregando conversa...</S.ChatEmptyState>
+            ) : null}
+
+            {!chatHistory.loading && chatHistory.error ? (
+              <S.ChatEmptyState>{chatHistory.error}</S.ChatEmptyState>
+            ) : null}
+
+            {!chatHistory.loading &&
+            !chatHistory.error &&
+            chatHistory.messages.length === 0 ? (
+              <S.ChatEmptyState>
+                Ainda não há mensagens registradas neste chamado.
+              </S.ChatEmptyState>
+            ) : null}
+
+            {!chatHistory.loading &&
+            !chatHistory.error &&
+            chatHistory.messages.length > 0 ? (
+              <S.ChatMessageList>
+                {chatHistory.messages.map((message) => {
+                  const tagLabel = getMessageTagLabel(message);
+
+                  return (
+                    <S.ChatMessageCard
+                      key={message.id}
+                      $system={tagLabel === "Sistema"}
+                    >
+                      <S.ChatMessageTop>
+                        <S.ChatMessageAuthor>
+                          {getMessageSenderLabel(message, {
+                            ticketCustomer: chatHistory.ticket?.customer,
+                          })}
+                        </S.ChatMessageAuthor>
+                        <S.ChatMessageBadge>{tagLabel}</S.ChatMessageBadge>
+                      </S.ChatMessageTop>
+
+                      <S.ChatMessageContent>
+                        {message.content || "Mensagem sem conteúdo."}
+                      </S.ChatMessageContent>
+
+                      <S.ChatMessageTime>
+                        {formatDate(message.createdAt)}
+                      </S.ChatMessageTime>
+                    </S.ChatMessageCard>
+                  );
+                })}
+              </S.ChatMessageList>
+            ) : null}
+
+            <S.ModalActions>
+              <S.SecondaryButton onClick={closeChatHistory}>Fechar</S.SecondaryButton>
+
+              {chatHistory.ticket && canReopenTicket(chatHistory.ticket) ? (
+                <S.CloseButton
+                  onClick={() => handleReopenTicket(chatHistory.ticket)}
+                  disabled={reopeningTicketId === chatHistory.ticket.id}
+                >
+                  {reopeningTicketId === chatHistory.ticket.id
+                    ? "Reabrindo..."
+                    : "Reabrir chamado"}
+                </S.CloseButton>
+              ) : null}
+            </S.ModalActions>
+          </S.ChatModalContent>
         </S.ModalOverlay>
       ) : null}
     </S.Container>

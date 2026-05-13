@@ -62,9 +62,13 @@ export const ticketService = {
     return response.data;
   },
 
-  getUserClosedTickets: async () => {
+  getUserClosedTickets: async ({ page, pageSize } = {}) => {
     const response = await api.get("/tickets/user-closed-tickets", {
       headers: getAuthHeader(),
+      params: {
+        ...(page ? { page } : {}),
+        ...(pageSize ? { pageSize } : {}),
+      },
     });
     return response.data;
   },
