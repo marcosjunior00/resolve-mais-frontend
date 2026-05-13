@@ -110,6 +110,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [composerText, setComposerText] = useState("");
   const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
+  const [isTicketDetailsDialogOpen, setIsTicketDetailsDialogOpen] = useState(false);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -355,6 +356,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
   useEffect(() => {
     setIsHistoryDialogOpen(false);
+    setIsTicketDetailsDialogOpen(false);
     setEvaluationDialog({
       isOpen: false,
       mode: null,
@@ -394,12 +396,26 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   ]);
 
   useEffect(() => {
-    if (!isHistoryDialogOpen) return undefined;
+    const hasOpenDialog =
+      isHistoryDialogOpen ||
+      isTicketDetailsDialogOpen ||
+      evaluationDialog.isOpen;
+
+    if (!hasOpenDialog) return undefined;
 
     const previousBodyOverflow = document.body.style.overflow;
     const handleEscapeKey = (event) => {
-      if (event.key === "Escape") {
+      if (event.key !== "Escape") return;
+
+      if (isTicketDetailsDialogOpen) {
+        setIsTicketDetailsDialogOpen(false);
+      } else if (isHistoryDialogOpen) {
         setIsHistoryDialogOpen(false);
+      } else if (evaluationDialog.isOpen && !actionLoading) {
+        setEvaluationDialog({
+          isOpen: false,
+          mode: null,
+        });
       }
     };
 
@@ -410,7 +426,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [isHistoryDialogOpen]);
+  }, [actionLoading, evaluationDialog.isOpen, isHistoryDialogOpen, isTicketDetailsDialogOpen]);
 
   useEffect(() => {
     if (!selectedTicketId) return undefined;
@@ -617,6 +633,14 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
   const closeHistoryDialog = () => {
     setIsHistoryDialogOpen(false);
+  };
+
+  const openTicketDetailsDialog = () => {
+    setIsTicketDetailsDialogOpen(true);
+  };
+
+  const closeTicketDetailsDialog = () => {
+    setIsTicketDetailsDialogOpen(false);
   };
 
   const refreshSelectedTicket = async () => {
@@ -1021,9 +1045,18 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
                   <S.TicketHeaderActions>
                     {!isCustomerMode ? (
-                      <S.ActionButton type="button" $secondary onClick={openHistoryDialog}>
-                        Ver histórico
-                      </S.ActionButton>
+                      <>
+                        <S.ActionButton
+                          type="button"
+                          $secondary
+                          onClick={openTicketDetailsDialog}
+                        >
+                          Ver detalhes
+                        </S.ActionButton>
+                        <S.ActionButton type="button" $secondary onClick={openHistoryDialog}>
+                          Ver histórico
+                        </S.ActionButton>
+                      </>
                     ) : null}
 
                     {isCompanyMode && selectedTicket.permissions?.canAssign ? (
@@ -1295,6 +1328,148 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                 </S.LogList>
               ) : null}
             </S.HistoryDialogBody>
+          </S.HistoryDialog>
+        </S.HistoryDialogOverlay>
+      ) : null}
+
+      {!isCustomerMode && selectedTicket && isTicketDetailsDialogOpen ? (
+        <S.HistoryDialogOverlay onClick={closeTicketDetailsDialog}>
+          <S.HistoryDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ticket-details-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.HistoryDialogHeader>
+              <div>
+                <S.HistoryDialogTitle id="ticket-details-dialog-title">
+                  Detalhes do ticket {buildTicketProtocol(selectedTicket.id)}
+                </S.HistoryDialogTitle>
+                <S.HistoryDialogText>
+                  Dados principais do chamado para consulta da equipe.
+                </S.HistoryDialogText>
+              </div>
+
+              <S.ActionButton type="button" $secondary onClick={closeTicketDetailsDialog}>
+                Fechar
+              </S.ActionButton>
+            </S.HistoryDialogHeader>
+
+            <S.TicketDetailsBody>
+              <S.TicketDetailsGrid>
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Protocolo</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {selectedTicket.protocol || buildTicketProtocol(selectedTicket.id)}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Status</S.TicketDetailLabel>
+                  <S.StatusPill $tone={getTicketStatusTone(selectedTicket.status)}>
+                    {getTicketStatusLabel(selectedTicket.status)}
+                  </S.StatusPill>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Modo atual</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {getConversationModeLabel(selectedTicket)}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Assunto</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {selectedTicket.complaintTitle?.title || "Sem assunto"}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Empresa</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {selectedTicket.company?.name || "Não informado"}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>CNPJ</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {selectedTicket.company?.cnpj || "Não informado"}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Cliente</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {selectedTicket.customer?.name || "Não informado"}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Responsável</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {selectedTicket.assignedEmployee?.name || "Ainda não definido"}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Criado em</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {formatDateTime(selectedTicket.createdAt)}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                <S.TicketDetailItem>
+                  <S.TicketDetailLabel>Última atualização</S.TicketDetailLabel>
+                  <S.TicketDetailValue>
+                    {formatDateTime(selectedTicket.updatedAt)}
+                  </S.TicketDetailValue>
+                </S.TicketDetailItem>
+
+                {selectedTicket.acceptedAt ? (
+                  <S.TicketDetailItem>
+                    <S.TicketDetailLabel>Aceito em</S.TicketDetailLabel>
+                    <S.TicketDetailValue>
+                      {formatDateTime(selectedTicket.acceptedAt)}
+                    </S.TicketDetailValue>
+                  </S.TicketDetailItem>
+                ) : null}
+
+                {selectedTicket.resolvedAt ? (
+                  <S.TicketDetailItem>
+                    <S.TicketDetailLabel>Resolvido em</S.TicketDetailLabel>
+                    <S.TicketDetailValue>
+                      {formatDateTime(selectedTicket.resolvedAt)}
+                    </S.TicketDetailValue>
+                  </S.TicketDetailItem>
+                ) : null}
+
+                <S.TicketDetailBlock>
+                  <S.TicketDetailLabel>Descrição do cliente</S.TicketDetailLabel>
+                  <S.TicketDetailText>
+                    {selectedTicket.description || "Sem descrição registrada."}
+                  </S.TicketDetailText>
+                </S.TicketDetailBlock>
+
+                <S.TicketDetailBlock>
+                  <S.TicketDetailLabel>Descrição do assunto</S.TicketDetailLabel>
+                  <S.TicketDetailText>
+                    {selectedTicket.complaintTitle?.description ||
+                      "Sem descrição complementar para este assunto."}
+                  </S.TicketDetailText>
+                </S.TicketDetailBlock>
+
+                {selectedTicket.lastUpdateMessage ? (
+                  <S.TicketDetailBlock>
+                    <S.TicketDetailLabel>Última movimentação</S.TicketDetailLabel>
+                    <S.TicketDetailText>
+                      {selectedTicket.lastUpdateMessage}
+                    </S.TicketDetailText>
+                  </S.TicketDetailBlock>
+                ) : null}
+              </S.TicketDetailsGrid>
+            </S.TicketDetailsBody>
           </S.HistoryDialog>
         </S.HistoryDialogOverlay>
       ) : null}

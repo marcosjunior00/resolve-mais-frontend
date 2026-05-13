@@ -709,6 +709,60 @@ export const HistoryDialogBody = styled.div`
     #f8fafc;
 `;
 
+export const TicketDetailsBody = styled.div`
+  padding: 18px 20px 20px;
+  overflow-y: auto;
+  background: #f8fafc;
+`;
+
+export const TicketDetailsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  @media (max-width: 680px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const TicketDetailItem = styled.div`
+  min-width: 0;
+  border: 1px solid #dce4e8;
+  border-radius: 12px;
+  padding: 12px;
+  background: #ffffff;
+`;
+
+export const TicketDetailBlock = styled(TicketDetailItem)`
+  grid-column: 1 / -1;
+`;
+
+export const TicketDetailLabel = styled.span`
+  display: block;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+export const TicketDetailValue = styled.strong`
+  display: block;
+  color: #0f172a;
+  font-size: 0.94rem;
+  line-height: 1.45;
+  word-break: break-word;
+`;
+
+export const TicketDetailText = styled.p`
+  margin: 0;
+  color: #334155;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+`;
+
 export const EvaluationPrompt = styled.div`
   display: flex;
   align-items: flex-start;
