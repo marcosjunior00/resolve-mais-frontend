@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import LoggedHeader from "../../../components/LoggedHeader";
 import { useSnack } from "../../../contexts/SnackContext";
@@ -350,9 +350,14 @@ const ClosedTickets = () => {
             atendimento.
           </S.Subtitle>
         </div>
-        <S.HeaderCount>
-          {totalTickets} chamado{totalTickets === 1 ? "" : "s"}
-        </S.HeaderCount>
+        <S.HeaderActions>
+          <S.HeaderCount>
+            {totalTickets} chamado{totalTickets === 1 ? "" : "s"}
+          </S.HeaderCount>
+          <S.HeaderCtaLink as={Link} to="/cliente/chatbot">
+            Ver tickets abertos
+          </S.HeaderCtaLink>
+        </S.HeaderActions>
       </S.Header>
 
       {totalTickets === 0 ? (

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import LoggedHeader from "../LoggedHeader";
 import { useSnack } from "../../contexts/SnackContext";
@@ -186,9 +186,14 @@ const PendingTickets = () => {
             Acompanhe chamados abertos ou em atendimento humano.
           </S.Subtitle>
         </div>
-        <S.HeaderCount>
-          {totalTickets} chamado{totalTickets === 1 ? "" : "s"}
-        </S.HeaderCount>
+        <S.HeaderActions>
+          <S.HeaderCount>
+            {totalTickets} chamado{totalTickets === 1 ? "" : "s"}
+          </S.HeaderCount>
+          <S.HeaderCtaLink as={Link} to="/cliente/closed-tickets">
+            Ver tickets finalizados
+          </S.HeaderCtaLink>
+        </S.HeaderActions>
       </S.Header>
 
       {totalTickets === 0 ? (

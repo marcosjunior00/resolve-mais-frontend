@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import * as S from "./styles";
 
@@ -1068,6 +1068,11 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                 <strong>{workspace.summary.semResponsavel || 0}</strong>
                 <span>Sem responsável</span>
               </S.HeroBadge>
+            ) : null}
+            {isCustomerMode ? (
+              <S.HeroCtaLink as={Link} to="/cliente/closed-tickets">
+                Ver tickets finalizados
+              </S.HeroCtaLink>
             ) : null}
           </S.HeroMeta>
         </S.HeroCard>

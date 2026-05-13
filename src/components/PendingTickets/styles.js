@@ -125,6 +125,48 @@ export const HeaderCount = styled.span`
   white-space: nowrap;
 `;
 
+export const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  @media (max-width: 420px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+export const HeaderCtaLink = styled.a`
+  min-height: 36px;
+  padding: 8px 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateY(-1px);
+  }
+`;
+
 export const EmptyState = styled.div`
   margin-top: 50px;
   font-size: 16px;

@@ -157,6 +157,33 @@ export const HeroBadge = styled.div`
   }
 `;
 
+export const HeroCtaLink = styled.a`
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  text-decoration: none;
+  font-size: 0.84rem;
+  font-weight: 700;
+  transition: 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.46);
+    transform: translateY(-1px);
+  }
+
+  @media (max-width: 520px) {
+    width: 100%;
+  }
+`;
+
 export const Board = styled.section`
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
