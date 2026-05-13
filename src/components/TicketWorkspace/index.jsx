@@ -83,6 +83,55 @@ const getEvaluationCopy = (ticket) => {
   };
 };
 
+const getStatusFlowHelper = (ticket) => {
+  if (!ticket) return null;
+
+  const normalizedStatus = String(ticket.status || "").toLowerCase();
+
+  if (normalizedStatus === TICKET_STATUS.ABERTO) {
+    return {
+      title: "Fluxo com chatbot",
+      items: [
+        "O cliente conversa primeiro com o Resolve Assist neste chat.",
+        "O chatbot responde apenas com as informações do ticket e do contexto cadastrado.",
+        "O atendimento humano começa quando a empresa aceita o chamado ou define um responsável.",
+      ],
+    };
+  }
+
+  if (normalizedStatus === TICKET_STATUS.PENDENTE) {
+    const responsibleText = ticket.assignedEmployee?.name
+      ? `Responsável atual: ${ticket.assignedEmployee.name}.`
+      : "O chamado está em atendimento humano, mas ainda não tem responsável definido.";
+
+    return {
+      title: "Fluxo com atendimento humano",
+      items: [
+        responsibleText,
+        "A conversa com o cliente continua centralizada neste mesmo chat.",
+        "A equipe pode responder, revisar o histórico e marcar como resolvido quando o caso estiver encaminhado.",
+      ],
+    };
+  }
+
+  if (normalizedStatus === TICKET_STATUS.RESOLVIDO) {
+    const evaluationText = ticket.evaluation?.pending
+      ? "O cliente ainda precisa avaliar o atendimento antes do encerramento definitivo."
+      : "A solução foi registrada e o chamado aguarda confirmação ou fechamento definitivo.";
+
+    return {
+      title: "Fluxo de resolução",
+      items: [
+        "O atendimento foi marcado como resolvido.",
+        evaluationText,
+        "Se o problema continuar, o cliente pode reabrir o chamado quando essa ação estiver disponível.",
+      ],
+    };
+  }
+
+  return null;
+};
+
 const TicketWorkspace = ({ mode = "customer", title }) => {
   const { userData } = useAuth();
   const { showSnack } = useSnack();
@@ -935,6 +984,34 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     return buttons;
   };
 
+  const renderStatusPill = (ticket, { withHelper = false } = {}) => {
+    const statusPill = (
+      <S.StatusPill $tone={getTicketStatusTone(ticket.status)}>
+        {getTicketStatusLabel(ticket.status)}
+      </S.StatusPill>
+    );
+    const helper = withHelper ? getStatusFlowHelper(ticket) : null;
+
+    if (!helper) return statusPill;
+
+    return (
+      <S.StatusHelper
+        tabIndex={0}
+        aria-label={`${getTicketStatusLabel(ticket.status)}. ${helper.title}`}
+      >
+        {statusPill}
+        <S.StatusHelperTooltip role="tooltip">
+          <S.StatusHelperTitle>{helper.title}</S.StatusHelperTitle>
+          <S.StatusHelperList>
+            {helper.items.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </S.StatusHelperList>
+        </S.StatusHelperTooltip>
+      </S.StatusHelper>
+    );
+  };
+
   return (
     <S.Page>
       <LoggedHeader />
@@ -1007,9 +1084,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                         <S.TicketName>{ticket.company?.name || "Resolve Mais"}</S.TicketName>
                         <S.TicketSmall>{ticket.protocol}</S.TicketSmall>
                       </div>
-                      <S.StatusPill $tone={getTicketStatusTone(ticket.status)}>
-                        {getTicketStatusLabel(ticket.status)}
-                      </S.StatusPill>
+                      {renderStatusPill(ticket)}
                     </S.TicketRow>
                     <S.TicketSmall>
                       {ticket.complaintTitle?.title || "Sem assunto"}
@@ -1101,9 +1176,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                 <S.MetaGrid>
                   <S.MetaItem>
                     <S.MetaLabel>Status</S.MetaLabel>
-                    <S.StatusPill $tone={getTicketStatusTone(selectedTicket.status)}>
-                      {getTicketStatusLabel(selectedTicket.status)}
-                    </S.StatusPill>
+                    {renderStatusPill(selectedTicket, { withHelper: true })}
                   </S.MetaItem>
                   <S.MetaItem>
                     <S.MetaLabel>Modo atual</S.MetaLabel>
@@ -1128,17 +1201,6 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                     </S.MetaItem>
                   ) : null}
                 </S.MetaGrid>
-
-                <S.ConversationBanner
-                  $warning={selectedTicket.status === TICKET_STATUS.ABERTO}
-                >
-                  <S.ConversationBannerLabel>Fluxo</S.ConversationBannerLabel>
-                  <span>
-                    {selectedTicket.status === TICKET_STATUS.ABERTO
-                      ? "Chatbot ativo. O atendimento humano começa quando a empresa aceitar o chamado."
-                      : "Conversa centralizada neste chat. Use o histórico para revisar movimentações."}
-                  </span>
-                </S.ConversationBanner>
 
                 {isCustomerMode && selectedTicket.evaluation?.pending ? (
                   <S.EvaluationPrompt>
@@ -1366,9 +1428,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
                 <S.TicketDetailItem>
                   <S.TicketDetailLabel>Status</S.TicketDetailLabel>
-                  <S.StatusPill $tone={getTicketStatusTone(selectedTicket.status)}>
-                    {getTicketStatusLabel(selectedTicket.status)}
-                  </S.StatusPill>
+                  {renderStatusPill(selectedTicket, { withHelper: true })}
                 </S.TicketDetailItem>
 
                 <S.TicketDetailItem>

@@ -271,6 +271,80 @@ export const StatusPill = styled.span`
   white-space: nowrap;
 `;
 
+export const StatusHelperTooltip = styled.span`
+  position: absolute;
+  left: 0;
+  top: calc(100% + 10px);
+  z-index: 40;
+  width: min(330px, calc(100vw - 48px));
+  padding: 12px 14px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+  color: #334155;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: 0.16s ease;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -6px;
+    left: 18px;
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border-left: 1px solid #cbd5e1;
+    border-top: 1px solid #cbd5e1;
+    transform: rotate(45deg);
+  }
+`;
+
+export const StatusHelper = styled.span`
+  position: relative;
+  display: inline-flex;
+  width: fit-content;
+  cursor: help;
+
+  &:focus {
+    outline: 3px solid rgba(16, 185, 129, 0.18);
+    outline-offset: 3px;
+    border-radius: 999px;
+  }
+
+  &:hover ${StatusHelperTooltip},
+  &:focus ${StatusHelperTooltip},
+  &:focus-within ${StatusHelperTooltip} {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+`;
+
+export const StatusHelperTitle = styled.strong`
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-size: 0.82rem;
+`;
+
+export const StatusHelperList = styled.span`
+  display: grid;
+  gap: 7px;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.45;
+
+  span {
+    display: block;
+  }
+`;
+
 export const Main = styled(Card)`
   padding: 18px;
   display: flex;
@@ -355,33 +429,6 @@ export const InlineSelect = styled.select`
     border-color: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
   }
-`;
-
-export const ConversationBanner = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  border-radius: 12px;
-  padding: 8px 12px;
-  background: ${({ $warning }) => ($warning ? "#fff7ed" : "#ecfdf5")};
-  border: 1px solid ${({ $warning }) => ($warning ? "#fdba74" : "#a7f3d0")};
-  color: ${({ $warning }) => ($warning ? "#9a3412" : "#166534")};
-  font-size: 0.86rem;
-  line-height: 1.35;
-
-  @media (max-width: 680px) {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 6px;
-  }
-`;
-
-export const ConversationBannerLabel = styled.strong`
-  flex-shrink: 0;
-  color: inherit;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 `;
 
 export const ChatShell = styled.div`
