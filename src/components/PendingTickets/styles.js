@@ -2,34 +2,34 @@ import styled from "styled-components";
 
 const statusStyles = {
   aberto: {
-    color: "#f59e0b",
-    background: "#fef3c7",
-    border: "#f59e0b",
+    color: "#9a3412",
+    background: "#fff7ed",
+    border: "#fdba74",
   },
   pendente: {
-    color: "#ef4444",
-    background: "#fee2e2",
-    border: "#ef4444",
+    color: "#1d4f86",
+    background: "#f8fbff",
+    border: "#9fb4cf",
   },
   fechado: {
     color: "#6b7280",
     background: "#f3f4f6",
-    border: "#6b7280",
+    border: "#d1d5db",
   },
   finalizado: {
     color: "#6b7280",
     background: "#f3f4f6",
-    border: "#6b7280",
+    border: "#d1d5db",
   },
   resolvido: {
-    color: "#10b981",
-    background: "#d1fae5",
-    border: "#10b981",
+    color: "#166534",
+    background: "#f0fdf4",
+    border: "#bbf7d0",
   },
   default: {
     color: "#6b7280",
     background: "#f3f4f6",
-    border: "#6b7280",
+    border: "#d1d5db",
   },
 };
 
@@ -37,25 +37,43 @@ const getStatusStyle = ($status, prop) =>
   (statusStyles[$status] || statusStyles.default)[prop];
 
 const actionButtonStyles = `
-  padding: 8px 14px;
-  border: none;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
   border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: background 0.2s ease, transform 0.1s ease;
+  font-size: 0.84rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
   white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: wait;
+    transform: none;
+  }
 `;
 
 export const Container = styled.div`
   margin-top: 60px;
   width: 100%;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f4f7f8;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 10px;
+  padding: 24px 18px 64px;
 `;
 
 export const Loading = styled.div`
@@ -65,20 +83,46 @@ export const Loading = styled.div`
 `;
 
 export const Header = styled.div`
-  width: 100%;
+  width: min(1180px, 100%);
   display: flex;
   align-items: center;
-  justify-content: center;
-  margin-top: 30px;
-  margin-bottom: 40px;
-  padding: 0 20px;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 18px 0 22px;
+
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 `;
 
 export const PageTitle = styled.h1`
-  font-size: 22px;
-  font-weight: 600;
-  color: #222;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #0f172a;
   margin: 0;
+`;
+
+export const Subtitle = styled.p`
+  font-size: 0.92rem;
+  color: #64748b;
+  margin: 6px 0 0;
+  line-height: 1.5;
+`;
+
+export const HeaderCount = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid #d7e0e6;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
 `;
 
 export const EmptyState = styled.div`
@@ -88,48 +132,92 @@ export const EmptyState = styled.div`
   text-align: center;
 `;
 
-export const TicketCard = styled.div`
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+export const ListToolbar = styled.div`
+  width: min(1180px, 100%);
   display: flex;
-  flex-direction: column;
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 10px;
 
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+  @media (max-width: 640px) {
+    align-items: flex-start;
+    flex-direction: column;
   }
+`;
+
+export const PageSizeControl = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-size: 0.86rem;
+  font-weight: 700;
+`;
+
+export const PageSizeSelect = styled.select`
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 6px 30px 6px 10px;
+  background: #ffffff;
+  color: #334155;
+  font-weight: 700;
+  outline: none;
+
+  &:focus {
+    border-color: #0f766e;
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+  }
+`;
+
+export const PageRange = styled.span`
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 600;
 `;
 
 export const TicketsList = styled.div`
-  width: 100%;
+  width: min(1180px, 100%);
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 60px;
-  padding: 0 20px;
+  gap: 10px;
 `;
 
-export const TicketHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
+export const TicketCard = styled.div`
+  background: #fff;
+  border: 1px solid #dce4e8;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  width: 100%;
+  transition: all 0.2s ease;
 
-  @media (max-width: 640px) {
-    flex-direction: column;
+  &:hover {
+    border-color: #c7d3da;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.07);
   }
+
+  @media (max-width: 860px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const TicketMain = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 8px;
 `;
 
 export const TicketInfo = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 `;
 
 export const TicketActions = styled.div`
@@ -137,83 +225,160 @@ export const TicketActions = styled.div`
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
 
-  @media (max-width: 640px) {
+  @media (max-width: 860px) {
+    justify-content: flex-start;
+  }
+
+  @media (max-width: 520px) {
     width: 100%;
+
+    button {
+      flex: 1;
+    }
   }
 `;
 
 export const TicketTitle = styled.h2`
-  font-size: 18px;
-  font-weight: 500;
-  color: #333;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
   margin: 0;
 `;
 
 export const TicketStatus = styled.span`
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
   color: ${({ $status }) => getStatusStyle($status, "color")};
   background-color: ${({ $status }) => getStatusStyle($status, "background")};
-  padding: 4px 10px;
-  border-radius: 20px;
   border: 1px solid ${({ $status }) => getStatusStyle($status, "border")};
+  padding: 3px 9px;
+  border-radius: 999px;
+`;
+
+export const TicketSubject = styled.strong`
+  color: #334155;
+  font-size: 0.92rem;
+  line-height: 1.35;
+`;
+
+export const TicketDescription = styled.p`
+  max-width: 760px;
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+export const TicketMetaGrid = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+`;
+
+export const TicketMetaItem = styled.div`
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 160px;
+`;
+
+export const MetaLabel = styled.span`
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-transform: uppercase;
+`;
+
+export const MetaValue = styled.span`
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 600;
 `;
 
 export const VerDetalhesButton = styled.button`
   ${actionButtonStyles}
-  background-color: #00c853;
-  color: #fff;
-
-  &:hover {
-    background-color: #00b84d;
-    transform: scale(1.03);
-  }
-
-  &:active {
-    background-color: #009d42;
-    transform: scale(0.98);
-  }
 `;
 
-export const SecondaryButton = styled.button`
+export const ChatButton = styled.button`
   ${actionButtonStyles}
-  width: ${({ $full }) => ($full ? "100%" : "auto")};
-  margin-top: ${({ $withTopSpacing }) => ($withTopSpacing ? "12px" : "0")};
-  align-self: ${({ $alignSelf }) => $alignSelf || "auto"};
-  background-color: #eef2f7;
-  color: #1f2937;
+  border-color: #9fb4cf;
+  color: #1d4f86;
+  background: #f8fbff;
 
-  &:hover {
-    background-color: #e1e7ef;
-    transform: scale(1.03);
-  }
-
-  &:active {
-    background-color: #d3dbe6;
-    transform: scale(0.98);
+  &:hover:not(:disabled) {
+    border-color: #6d91bc;
+    background: #eef6ff;
   }
 `;
 
-export const TicketProtocol = styled.p`
-  margin: 8px 0 4px 0;
-  font-size: 14px;
-  color: #666;
-  font-weight: 500;
+export const PaginationBar = styled.div`
+  width: min(1180px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 14px;
+
+  @media (max-width: 520px) {
+    justify-content: stretch;
+  }
 `;
 
-export const TicketDate = styled.p`
-  margin: 0;
-  font-size: 13px;
-  color: #888;
+export const PaginationButton = styled.button`
+  min-height: 34px;
+  min-width: ${({ $icon }) => ($icon ? "38px" : "auto")};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: ${({ $icon }) => ($icon ? "7px 10px" : "7px 12px")};
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  font-size: ${({ $icon }) => ($icon ? "1.05rem" : "0.84rem")};
+  font-weight: 700;
+  line-height: 1;
+  transition: all 0.2s ease;
+
+  svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 2.2;
+  }
+
+  &:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  @media (max-width: 520px) {
+    flex: 1;
+  }
+`;
+
+export const PageIndicator = styled.span`
+  color: #475569;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
 `;
 
 export const ModalOverlay = styled.div`
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: center;
@@ -248,7 +413,7 @@ export const ModalContent = styled.div`
 
 export const ModalTitle = styled.h2`
   font-size: 20px;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
   color: #222;
   font-weight: 600;
   text-align: center;
@@ -283,6 +448,7 @@ export const DescriptionBox = styled.div`
   background-color: #f9fafb;
   border-radius: 6px;
   border: 1px solid #e5e7eb;
+  white-space: pre-wrap;
 `;
 
 export const ModalActions = styled.div`
@@ -295,21 +461,7 @@ export const ModalActions = styled.div`
   }
 `;
 
-export const CloseButton = styled.button`
+export const SecondaryButton = styled.button`
   ${actionButtonStyles}
-  width: 100%;
-  background-color: #00c853;
-  color: #fff;
-
-  &:hover {
-    background-color: #00b84d;
-  }
-`;
-
-export const ChatButton = styled(CloseButton)`
-  background-color: #0f766e;
-
-  &:hover {
-    background-color: #0d5f59;
-  }
+  width: ${({ $full }) => ($full ? "100%" : "auto")};
 `;

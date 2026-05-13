@@ -73,9 +73,13 @@ export const ticketService = {
     return response.data;
   },
 
-  getUserOpenAndPendingTickets: async () => {
+  getUserOpenAndPendingTickets: async ({ page, pageSize } = {}) => {
     const response = await api.get("/tickets/user-open-pending-tickets", {
       headers: getAuthHeader(),
+      params: {
+        ...(page ? { page } : {}),
+        ...(pageSize ? { pageSize } : {}),
+      },
     });
     return response.data;
   },

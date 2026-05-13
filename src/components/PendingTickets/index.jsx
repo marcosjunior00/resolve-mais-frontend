@@ -1,32 +1,60 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import LoggedHeader from "../LoggedHeader";
 import { useSnack } from "../../contexts/SnackContext";
 import { ticketService } from "../../services/ticketService";
+import { buildTicketProtocol } from "../../utils/ticket";
 import * as S from "./styles";
+
+const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
 const PendingTickets = () => {
   const navigate = useNavigate();
   const { showSnack } = useSnack();
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalTickets, setTotalTickets] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState(null);
 
-  useEffect(() => {
-    loadTickets();
-  }, []);
+  const firstVisibleTicketIndex =
+    totalTickets === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const lastVisibleTicketIndex =
+    totalTickets === 0
+      ? 0
+      : Math.min((currentPage - 1) * pageSize + tickets.length, totalTickets);
 
-  const loadTickets = async () => {
+  const loadTickets = useCallback(async ({
+    page = currentPage,
+    pageSize: requestedPageSize = pageSize,
+  } = {}) => {
     try {
-      const response = await ticketService.getUserOpenAndPendingTickets();
+      const response = await ticketService.getUserOpenAndPendingTickets({
+        page,
+        pageSize: requestedPageSize,
+      });
+
       setTickets(response?.tickets || []);
+      setTotalTickets(Number(response?.pagination?.total || 0));
+      setTotalPages(Number(response?.pagination?.totalPages || 1));
+
+      if (
+        response?.pagination?.page &&
+        Number(response.pagination.page) !== currentPage
+      ) {
+        setCurrentPage(Number(response.pagination.page));
+      }
     } catch (error) {
       console.error("Erro ao carregar tickets:", error);
 
       if (
         error.response?.status === 401 ||
-        error.message?.includes("Não autorizado")
+        error.message?.includes("Não autorizado") ||
+        error.message?.includes("Nao autorizado")
       ) {
         navigate("/login");
         return;
@@ -41,7 +69,30 @@ const PendingTickets = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, navigate, pageSize, showSnack]);
+
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
+
+  useEffect(() => {
+    if (!selectedTicket) return undefined;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const handleEscapeKey = (event) => {
+      if (event.key === "Escape") {
+        setSelectedTicket(null);
+      }
+    };
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleEscapeKey);
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      window.removeEventListener("keydown", handleEscapeKey);
+    };
+  }, [selectedTicket]);
 
   const openDetails = (ticket) => {
     setSelectedTicket(ticket);
@@ -53,6 +104,11 @@ const PendingTickets = () => {
 
   const openConversation = (ticketId) => {
     navigate(`/cliente/chatbot?ticketId=${ticketId}`);
+  };
+
+  const handlePageSizeChange = (event) => {
+    setPageSize(Number(event.target.value));
+    setCurrentPage(1);
   };
 
   const formatDate = (dateString) => {
@@ -87,6 +143,9 @@ const PendingTickets = () => {
     }
   };
 
+  const getUpdatedAt = (ticket) =>
+    ticket?.atualizadoEm || ticket?.updatedAt || ticket?.criadoEm || ticket?.createdAt;
+
   if (loading) {
     return (
       <S.Container>
@@ -103,58 +162,130 @@ const PendingTickets = () => {
       <S.Header>
         <div>
           <S.PageTitle>Tickets em Andamento</S.PageTitle>
+          <S.Subtitle>
+            Acompanhe chamados abertos ou em atendimento humano.
+          </S.Subtitle>
         </div>
+        <S.HeaderCount>
+          {totalTickets} chamado{totalTickets === 1 ? "" : "s"}
+        </S.HeaderCount>
       </S.Header>
 
-      {tickets.length === 0 ? (
+      {totalTickets === 0 ? (
         <S.EmptyState>Nenhum ticket em andamento encontrado.</S.EmptyState>
       ) : (
-        <S.TicketsList>
-          {tickets.map((ticket) => (
-            <S.TicketCard key={ticket.id}>
-              <S.TicketHeader>
-                <S.TicketInfo>
-                  <S.TicketTitle>
-                    Chamado {ticket.empresa || "Resolve +"}
-                  </S.TicketTitle>
-                  <S.TicketStatus $status={ticket.status}>
-                    {getStatusText(ticket.status)}
-                  </S.TicketStatus>
-                </S.TicketInfo>
+        <>
+          <S.ListToolbar>
+            <S.PageSizeControl>
+              <span>Chamados por página</span>
+              <S.PageSizeSelect value={pageSize} onChange={handlePageSizeChange}>
+                {PAGE_SIZE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </S.PageSizeSelect>
+            </S.PageSizeControl>
+
+            <S.PageRange>
+              Mostrando {firstVisibleTicketIndex}-{lastVisibleTicketIndex} de{" "}
+              {totalTickets}
+            </S.PageRange>
+          </S.ListToolbar>
+
+          <S.TicketsList>
+            {tickets.map((ticket) => (
+              <S.TicketCard key={ticket.id}>
+                <S.TicketMain>
+                  <S.TicketInfo>
+                    <S.TicketTitle>
+                      Chamado {ticket.empresa || "Resolve +"}
+                    </S.TicketTitle>
+                    <S.TicketStatus $status={ticket.status}>
+                      {getStatusText(ticket.status)}
+                    </S.TicketStatus>
+                  </S.TicketInfo>
+
+                  <S.TicketSubject>
+                    {ticket.tituloReclamacao || "Sem título registrado"}
+                  </S.TicketSubject>
+
+                  <S.TicketDescription>
+                    {ticket.descricao || "Sem descrição disponível."}
+                  </S.TicketDescription>
+
+                  <S.TicketMetaGrid>
+                    <S.TicketMetaItem>
+                      <S.MetaLabel>Protocolo</S.MetaLabel>
+                      <S.MetaValue>
+                        {ticket.protocolo || buildTicketProtocol(ticket.id)}
+                      </S.MetaValue>
+                    </S.TicketMetaItem>
+                    <S.TicketMetaItem>
+                      <S.MetaLabel>Última movimentação</S.MetaLabel>
+                      <S.MetaValue>{formatDate(getUpdatedAt(ticket))}</S.MetaValue>
+                    </S.TicketMetaItem>
+                    {ticket.atribuidoPara ? (
+                      <S.TicketMetaItem>
+                        <S.MetaLabel>Responsável</S.MetaLabel>
+                        <S.MetaValue>{ticket.atribuidoPara}</S.MetaValue>
+                      </S.TicketMetaItem>
+                    ) : null}
+                  </S.TicketMetaGrid>
+                </S.TicketMain>
 
                 <S.TicketActions>
                   <S.VerDetalhesButton
                     type="button"
+                    onClick={() => openDetails(ticket)}
+                  >
+                    Ver detalhes
+                  </S.VerDetalhesButton>
+
+                  <S.ChatButton
+                    type="button"
                     onClick={() => openConversation(ticket.id)}
                   >
                     Abrir atendimento
-                  </S.VerDetalhesButton>
+                  </S.ChatButton>
                 </S.TicketActions>
-              </S.TicketHeader>
+              </S.TicketCard>
+            ))}
+          </S.TicketsList>
 
-              <S.TicketDate>
-                Última movimentação:{" "}
-                {formatDate(ticket.updatedAt || ticket.createdAt)}
-              </S.TicketDate>
+          <S.PaginationBar>
+            <S.PaginationButton
+              type="button"
+              $icon
+              aria-label="Página anterior"
+              title="Página anterior"
+              onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </S.PaginationButton>
 
-              <S.SecondaryButton
-                type="button"
-                $withTopSpacing
-                $alignSelf="flex-start"
-                onClick={() => openDetails(ticket)}
-              >
-                Ver detalhes
-              </S.SecondaryButton>
+            <S.PageIndicator>
+              Página {currentPage} de {totalPages}
+            </S.PageIndicator>
 
-              <S.TicketProtocol>
-                Protocolo: {`3330${ticket.id.toString().padStart(4, "0")}`}
-              </S.TicketProtocol>
-            </S.TicketCard>
-          ))}
-        </S.TicketsList>
+            <S.PaginationButton
+              type="button"
+              $icon
+              aria-label="Próxima página"
+              title="Próxima página"
+              onClick={() =>
+                setCurrentPage((page) => Math.min(totalPages, page + 1))
+              }
+              disabled={currentPage >= totalPages}
+            >
+              <ChevronRight aria-hidden="true" />
+            </S.PaginationButton>
+          </S.PaginationBar>
+        </>
       )}
 
-      {selectedTicket && (
+      {selectedTicket ? (
         <S.ModalOverlay onClick={closeModal}>
           <S.ModalContent onClick={(event) => event.stopPropagation()}>
             <S.ModalTitle>Detalhes do Chamado</S.ModalTitle>
@@ -164,11 +295,11 @@ const PendingTickets = () => {
               {selectedTicket.empresa || "Não informada"}
             </S.ModalInfo>
 
-            {selectedTicket.tituloReclamacao && (
+            {selectedTicket.tituloReclamacao ? (
               <S.ModalInfo>
                 <strong>Título:</strong> {selectedTicket.tituloReclamacao}
               </S.ModalInfo>
-            )}
+            ) : null}
 
             <S.ModalInfo>
               <strong>Status:</strong>
@@ -179,11 +310,12 @@ const PendingTickets = () => {
 
             <S.ModalInfo>
               <strong>Protocolo:</strong>{" "}
-              {`3330${selectedTicket.id.toString().padStart(4, "0")}`}
+              {selectedTicket.protocolo || buildTicketProtocol(selectedTicket.id)}
             </S.ModalInfo>
 
             <S.ModalInfo>
-              <strong>Criado em:</strong> {formatDate(selectedTicket.createdAt)}
+              <strong>Criado em:</strong>{" "}
+              {formatDate(selectedTicket.criadoEm || selectedTicket.createdAt)}
             </S.ModalInfo>
 
             <S.ModalInfo>
@@ -209,7 +341,7 @@ const PendingTickets = () => {
             </S.ModalActions>
           </S.ModalContent>
         </S.ModalOverlay>
-      )}
+      ) : null}
     </S.Container>
   );
 };
