@@ -183,6 +183,7 @@ export const OptionsList = styled.div`
   gap: 0.75rem;
   max-height: 500px;
   overflow-y: auto;
+  padding-top: 1px;
 `;
 
 export const OptionItem = styled.button`
