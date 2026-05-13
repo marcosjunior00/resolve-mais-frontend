@@ -160,6 +160,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isTicketDetailsDialogOpen, setIsTicketDetailsDialogOpen] = useState(false);
+  const [isReopenConfirmationOpen, setIsReopenConfirmationOpen] = useState(false);
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -406,6 +407,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   useEffect(() => {
     setIsHistoryDialogOpen(false);
     setIsTicketDetailsDialogOpen(false);
+    setIsReopenConfirmationOpen(false);
     setEvaluationDialog({
       isOpen: false,
       mode: null,
@@ -448,6 +450,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     const hasOpenDialog =
       isHistoryDialogOpen ||
       isTicketDetailsDialogOpen ||
+      isReopenConfirmationOpen ||
       evaluationDialog.isOpen;
 
     if (!hasOpenDialog) return undefined;
@@ -458,6 +461,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
       if (isTicketDetailsDialogOpen) {
         setIsTicketDetailsDialogOpen(false);
+      } else if (isReopenConfirmationOpen && !actionLoading) {
+        setIsReopenConfirmationOpen(false);
       } else if (isHistoryDialogOpen) {
         setIsHistoryDialogOpen(false);
       } else if (evaluationDialog.isOpen && !actionLoading) {
@@ -475,7 +480,13 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [actionLoading, evaluationDialog.isOpen, isHistoryDialogOpen, isTicketDetailsDialogOpen]);
+  }, [
+    actionLoading,
+    evaluationDialog.isOpen,
+    isHistoryDialogOpen,
+    isReopenConfirmationOpen,
+    isTicketDetailsDialogOpen,
+  ]);
 
   useEffect(() => {
     if (!selectedTicketId) return undefined;
@@ -692,6 +703,16 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     setIsTicketDetailsDialogOpen(false);
   };
 
+  const openReopenConfirmation = () => {
+    setIsReopenConfirmationOpen(true);
+  };
+
+  const closeReopenConfirmation = () => {
+    if (actionLoading) return;
+
+    setIsReopenConfirmationOpen(false);
+  };
+
   const refreshSelectedTicket = async () => {
     if (!selectedTicketId) return;
     await loadTicketContext(selectedTicketId);
@@ -735,6 +756,17 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleConfirmReopenTicket = async () => {
+    if (!selectedTicket?.id) return;
+
+    await runTicketAction(
+      () => ticketService.updateStatus(selectedTicket.id, "reabrir"),
+      "Ticket reaberto com sucesso."
+    );
+
+    setIsReopenConfirmationOpen(false);
   };
 
   const handleHumanMessage = async () => {
@@ -968,12 +1000,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
           key="reopen"
           type="button"
           $secondary
-          onClick={() =>
-            runTicketAction(
-              () => ticketService.updateStatus(selectedTicket.id, "reabrir"),
-              "Ticket reaberto com sucesso."
-            )
-          }
+          onClick={isCustomerMode ? openReopenConfirmation : handleConfirmReopenTicket}
           disabled={actionLoading}
         >
           Reabrir ticket
@@ -1530,6 +1557,63 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                 ) : null}
               </S.TicketDetailsGrid>
             </S.TicketDetailsBody>
+          </S.HistoryDialog>
+        </S.HistoryDialogOverlay>
+      ) : null}
+
+      {isCustomerMode && selectedTicket && isReopenConfirmationOpen ? (
+        <S.HistoryDialogOverlay onClick={closeReopenConfirmation}>
+          <S.HistoryDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ticket-reopen-confirmation-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.HistoryDialogHeader>
+              <div>
+                <S.HistoryDialogTitle id="ticket-reopen-confirmation-title">
+                  Confirmar reabertura do ticket{" "}
+                  {selectedTicket.protocol || buildTicketProtocol(selectedTicket.id)}
+                </S.HistoryDialogTitle>
+                <S.HistoryDialogText>
+                  Confirme apenas se o problema voltou ou ainda precisa de atendimento.
+                </S.HistoryDialogText>
+              </div>
+
+              <S.ActionButton
+                type="button"
+                $secondary
+                onClick={closeReopenConfirmation}
+                disabled={actionLoading}
+              >
+                Cancelar
+              </S.ActionButton>
+            </S.HistoryDialogHeader>
+
+            <S.HistoryDialogBody>
+              <S.EvaluationHint>
+                Se foi um clique sem querer, cancele. O chamado continuará no
+                estado atual.
+              </S.EvaluationHint>
+
+              <S.EvaluationActions>
+                <S.ActionButton
+                  type="button"
+                  $secondary
+                  onClick={closeReopenConfirmation}
+                  disabled={actionLoading}
+                >
+                  Manter como está
+                </S.ActionButton>
+                <S.ActionButton
+                  type="button"
+                  onClick={handleConfirmReopenTicket}
+                  disabled={actionLoading}
+                >
+                  {actionLoading ? "Reabrindo..." : "Confirmar reabertura"}
+                </S.ActionButton>
+              </S.EvaluationActions>
+            </S.HistoryDialogBody>
           </S.HistoryDialog>
         </S.HistoryDialogOverlay>
       ) : null}

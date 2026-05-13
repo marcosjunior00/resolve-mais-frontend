@@ -27,6 +27,10 @@ const ClosedTickets = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [reopeningTicketId, setReopeningTicketId] = useState(null);
+  const [reopenConfirmation, setReopenConfirmation] = useState({
+    isOpen: false,
+    ticket: null,
+  });
   const [chatHistory, setChatHistory] = useState({
     isOpen: false,
     loading: false,
@@ -109,6 +113,24 @@ const ClosedTickets = () => {
     });
   };
 
+  const openReopenConfirmation = (ticket) => {
+    if (!ticket?.id) return;
+
+    setReopenConfirmation({
+      isOpen: true,
+      ticket,
+    });
+  };
+
+  const closeReopenConfirmation = useCallback(() => {
+    if (reopeningTicketId) return;
+
+    setReopenConfirmation({
+      isOpen: false,
+      ticket: null,
+    });
+  }, [reopeningTicketId]);
+
   const openChatHistory = async (ticket) => {
     const targetTicketId = String(ticket.id);
 
@@ -161,13 +183,17 @@ const ClosedTickets = () => {
   };
 
   useEffect(() => {
-    if (!selectedTicket && !chatHistory.isOpen) return undefined;
+    if (!selectedTicket && !chatHistory.isOpen && !reopenConfirmation.isOpen) {
+      return undefined;
+    }
 
     const previousBodyOverflow = document.body.style.overflow;
     const handleEscapeKey = (event) => {
       if (event.key !== "Escape") return;
 
-      if (chatHistory.isOpen) {
+      if (reopenConfirmation.isOpen && !reopeningTicketId) {
+        closeReopenConfirmation();
+      } else if (chatHistory.isOpen) {
         closeChatHistory();
       } else {
         closeModal();
@@ -181,7 +207,13 @@ const ClosedTickets = () => {
       document.body.style.overflow = previousBodyOverflow;
       window.removeEventListener("keydown", handleEscapeKey);
     };
-  }, [chatHistory.isOpen, selectedTicket]);
+  }, [
+    chatHistory.isOpen,
+    closeReopenConfirmation,
+    reopenConfirmation.isOpen,
+    reopeningTicketId,
+    selectedTicket,
+  ]);
 
   const formatDate = (dateString) => {
     if (!dateString) return "Data não disponível";
@@ -269,6 +301,10 @@ const ClosedTickets = () => {
       setSelectedTicket((current) =>
         String(current?.id) === String(ticket.id) ? null : current,
       );
+      setReopenConfirmation({
+        isOpen: false,
+        ticket: null,
+      });
 
       showSnack({
         variant: "success",
@@ -287,6 +323,10 @@ const ClosedTickets = () => {
     } finally {
       setReopeningTicketId(null);
     }
+  };
+
+  const handleConfirmReopenTicket = () => {
+    handleReopenTicket(reopenConfirmation.ticket);
   };
 
   if (loading) {
@@ -386,7 +426,7 @@ const ClosedTickets = () => {
 
                   {canReopen ? (
                     <S.ReopenButton
-                      onClick={() => handleReopenTicket(ticket)}
+                      onClick={() => openReopenConfirmation(ticket)}
                       disabled={isReopening}
                     >
                       {isReopening ? "Reabrindo..." : "Reabrir chamado"}
@@ -489,7 +529,7 @@ const ClosedTickets = () => {
 
               {canReopenTicket(selectedTicket) ? (
                 <S.CloseButton
-                  onClick={() => handleReopenTicket(selectedTicket)}
+                  onClick={() => openReopenConfirmation(selectedTicket)}
                   disabled={reopeningTicketId === selectedTicket.id}
                 >
                   {reopeningTicketId === selectedTicket.id
@@ -569,7 +609,7 @@ const ClosedTickets = () => {
 
               {chatHistory.ticket && canReopenTicket(chatHistory.ticket) ? (
                 <S.CloseButton
-                  onClick={() => handleReopenTicket(chatHistory.ticket)}
+                  onClick={() => openReopenConfirmation(chatHistory.ticket)}
                   disabled={reopeningTicketId === chatHistory.ticket.id}
                 >
                   {reopeningTicketId === chatHistory.ticket.id
@@ -579,6 +619,51 @@ const ClosedTickets = () => {
               ) : null}
             </S.ModalActions>
           </S.ChatModalContent>
+        </S.ModalOverlay>
+      ) : null}
+
+      {reopenConfirmation.isOpen && reopenConfirmation.ticket ? (
+        <S.ModalOverlay onClick={closeReopenConfirmation}>
+          <S.ModalContent
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reopen-confirmation-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.ModalTitle id="reopen-confirmation-title">
+              Confirmar reabertura
+            </S.ModalTitle>
+
+            <S.ModalInfo>
+              Deseja reabrir o chamado{" "}
+              <strong>{getTicketProtocol(reopenConfirmation.ticket)}</strong>?
+            </S.ModalInfo>
+
+            <S.DescriptionBox>
+              Confirme apenas se o problema voltou ou ainda precisa de atendimento.
+              Se foi um clique sem querer, cancele para manter o chamado no estado atual.
+            </S.DescriptionBox>
+
+            <S.ModalActions>
+              <S.SecondaryButton
+                type="button"
+                onClick={closeReopenConfirmation}
+                disabled={Boolean(reopeningTicketId)}
+              >
+                Cancelar
+              </S.SecondaryButton>
+
+              <S.CloseButton
+                type="button"
+                onClick={handleConfirmReopenTicket}
+                disabled={reopeningTicketId === reopenConfirmation.ticket.id}
+              >
+                {reopeningTicketId === reopenConfirmation.ticket.id
+                  ? "Reabrindo..."
+                  : "Confirmar reabertura"}
+              </S.CloseButton>
+            </S.ModalActions>
+          </S.ModalContent>
         </S.ModalOverlay>
       ) : null}
     </S.Container>
