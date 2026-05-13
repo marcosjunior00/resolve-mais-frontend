@@ -39,16 +39,6 @@ export const chatbotService = {
     return response.data;
   },
 
-  clearConversation: async ({ conversationId = null, ticketId = null } = {}) => {
-    const headers = getAuthHeader();
-    const response = await api.post(
-      "/chatbot/conversation/clear",
-      { conversationId, ticketId },
-      { headers }
-    );
-    return response.data;
-  },
-
   streamMessage: async ({
     message,
     conversationId = null,

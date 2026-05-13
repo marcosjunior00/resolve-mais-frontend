@@ -664,39 +664,6 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     }
   };
 
-  const handleClearConversation = async () => {
-    if (!selectedTicketId) return;
-
-    try {
-      setActionLoading(true);
-      cancelPendingBotResponse();
-      setComposerText("");
-
-      const response = await chatbotService.clearConversation({
-        conversationId: conversation?.id || null,
-        ticketId: selectedTicketId,
-      });
-
-      setConversation(null);
-      setMessages([]);
-
-      await refreshSelectedTicket();
-      await loadWorkspace({ silent: true });
-
-      showSnack({
-        variant: "success",
-        message: response?.message || "Conversa limpa com sucesso.",
-      });
-    } catch (error) {
-      showSnack({
-        variant: "error",
-        message: error?.response?.data?.message || error?.message || "Não foi possível limpar a conversa.",
-      });
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
   const handleHumanMessage = async () => {
     const cleanText = composerText.trim();
     if (!cleanText || !selectedTicketId) return;
@@ -1053,17 +1020,6 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                   </div>
 
                   <S.TicketHeaderActions>
-                    {isCustomerMode ? (
-                      <S.ActionButton
-                        type="button"
-                        $secondary
-                        onClick={handleClearConversation}
-                        disabled={actionLoading || detailLoading}
-                      >
-                        Limpar conversa (teste)
-                      </S.ActionButton>
-                    ) : null}
-
                     {!isCustomerMode ? (
                       <S.ActionButton type="button" $secondary onClick={openHistoryDialog}>
                         Ver histórico
