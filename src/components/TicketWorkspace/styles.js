@@ -358,12 +358,30 @@ export const InlineSelect = styled.select`
 `;
 
 export const ConversationBanner = styled.div`
-  border-radius: 16px;
-  padding: 15px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 12px;
+  padding: 8px 12px;
   background: ${({ $warning }) => ($warning ? "#fff7ed" : "#ecfdf5")};
   border: 1px solid ${({ $warning }) => ($warning ? "#fdba74" : "#a7f3d0")};
   color: ${({ $warning }) => ($warning ? "#9a3412" : "#166534")};
-  line-height: 1.5;
+  font-size: 0.86rem;
+  line-height: 1.35;
+
+  @media (max-width: 680px) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+`;
+
+export const ConversationBannerLabel = styled.strong`
+  flex-shrink: 0;
+  color: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 `;
 
 export const ChatShell = styled.div`

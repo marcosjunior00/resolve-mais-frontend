@@ -1099,9 +1099,12 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                 <S.ConversationBanner
                   $warning={selectedTicket.status === TICKET_STATUS.ABERTO}
                 >
-                  {selectedTicket.status === TICKET_STATUS.ABERTO
-                    ? "Enquanto o ticket estiver aberto, o cliente fala primeiro com o chatbot. Assim que a empresa aceitar o chamado, a conversa passa para o atendimento humano."
-                    : "A conversa fica centralizada aqui e cada mensagem identifica claramente quem enviou. Use o histórico em dialog quando quiser revisar as movimentações do ticket."}
+                  <S.ConversationBannerLabel>Fluxo</S.ConversationBannerLabel>
+                  <span>
+                    {selectedTicket.status === TICKET_STATUS.ABERTO
+                      ? "Chatbot ativo. O atendimento humano começa quando a empresa aceitar o chamado."
+                      : "Conversa centralizada neste chat. Use o histórico para revisar movimentações."}
+                  </span>
                 </S.ConversationBanner>
 
                 {isCustomerMode && selectedTicket.evaluation?.pending ? (
