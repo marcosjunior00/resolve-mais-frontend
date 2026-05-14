@@ -47,7 +47,6 @@ export default function EmployeeHome() {
   const { userData } = useAuth();
   const [workspace, setWorkspace] = useState([]);
   const [allTickets, setAllTickets] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const isFetching = useRef(false);
 
@@ -58,14 +57,13 @@ export default function EmployeeHome() {
       isFetching.current = true;
       setLoading(true);
       try {
-        const [wsRes, allRes, notifRes] = await Promise.all([
+        const [wsRes, allRes] = await Promise.all([
           ticketService.getWorkspace({ scope: "active" }),
           ticketService.getWorkspace({ scope: "all" }),
-          ticketService.getUnreadMessageNotifications(),
         ]);
+
         setWorkspace(wsRes?.tickets || wsRes || []);
         setAllTickets(allRes?.tickets || allRes || []);
-        setNotifications(notifRes?.tickets || notifRes || []);
       } catch (err) {
         console.error(err);
       } finally {
@@ -87,8 +85,6 @@ export default function EmployeeHome() {
 
   // Tickets atribuídos ao funcionário com status pendente
   const emAndamento = workspace.filter((t) => t.status === "pendente").length;
-
-  const unread = notifications.length;
 
   return (
     <S.Page>
@@ -141,10 +137,6 @@ export default function EmployeeHome() {
             <S.MetricValue>{loading ? "—" : emAndamento}</S.MetricValue>
             <S.MetricLabel>Em andamento</S.MetricLabel>
           </S.MetricCard>
-          <S.MetricCard $highlight>
-            <S.MetricValue $warn={unread > 0}>{loading ? "—" : unread}</S.MetricValue>
-            <S.MetricLabel>Mensagens não lidas</S.MetricLabel>
-          </S.MetricCard>
         </S.MetricsGrid>
 
         {/* Tickets recentes */}
@@ -181,31 +173,6 @@ export default function EmployeeHome() {
               </S.TicketCard>
             ))}
           </S.TicketList>
-        )}
-
-        {/* Notificações de mensagem */}
-        {!loading && notifications.length > 0 && (
-          <>
-            <S.SectionHeader>
-              <div>
-                <S.SectionTitle>Mensagens não lidas</S.SectionTitle>
-                <S.SectionText>Tickets que aguardam sua resposta.</S.SectionText>
-              </div>
-            </S.SectionHeader>
-
-            <S.UpdatesGrid>
-              {notifications.map((ticket) => (
-                <S.UpdateCard key={ticket.id} as={Link} to={`/funcionario/ticket/${ticket.id}`}>
-                  <S.UpdateTitle>
-                    <S.UpdateDot />
-                    Ticket #{ticket.id}
-                  </S.UpdateTitle>
-                  <S.UpdateDescription>{ticket.description}</S.UpdateDescription>
-                  <S.UpdateTime>{formatTimeAgo(ticket.updatedAt || ticket.createdAt)}</S.UpdateTime>
-                </S.UpdateCard>
-              ))}
-            </S.UpdatesGrid>
-          </>
         )}
       </S.Container>
     </S.Page>

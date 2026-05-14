@@ -150,11 +150,11 @@ export const ActionIcon = styled.div`
 
 export const MetricsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 
   @media (max-width: 700px) {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -297,74 +297,6 @@ export const TicketTag = styled.span`
 
 export const TicketTime = styled.span`
   font-size: 0.75rem;
-  color: #7a9a9b;
-  font-weight: 500;
-`;
-
-/* ── Notificações (mensagens não lidas) ── */
-
-export const UpdatesGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-
-  @media (max-width: 640px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-export const UpdateCard = styled.a`
-  display: grid;
-  gap: 8px;
-  padding: 20px;
-  border-radius: 18px;
-  border: 1px solid rgba(15, 46, 47, 0.12);
-  background: rgba(255, 255, 255, 0.96);
-  box-shadow: 0 14px 28px rgba(15, 46, 47, 0.06);
-  text-decoration: none;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 18px 34px rgba(15, 46, 47, 0.1);
-  }
-`;
-
-export const UpdateTitle = styled.p`
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 700;
-  font-size: 0.98rem;
-  color: #123134;
-  line-height: 1.3;
-`;
-
-export const UpdateDot = styled.span`
-  display: inline-block;
-  flex-shrink: 0;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #77f2af 0%, #18bf6f 55%, #0d6b3c 100%);
-  box-shadow: 0 0 0 3px rgba(13, 107, 60, 0.12);
-`;
-
-export const UpdateDescription = styled.p`
-  margin: 0 0 0 20px;
-  font-size: 0.9rem;
-  color: #4d6a6b;
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-`;
-
-export const UpdateTime = styled.p`
-  margin: 0 0 0 20px;
-  font-size: 0.8rem;
   color: #7a9a9b;
   font-weight: 500;
 `;
