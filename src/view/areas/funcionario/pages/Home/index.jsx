@@ -156,7 +156,7 @@ export default function EmployeeHome() {
         {!loading && workspace.length > 0 && (
           <S.TicketList>
             {workspace.slice(0, 6).map((ticket) => (
-              <S.TicketCard key={ticket.id} as={Link} to={`/funcionario/ticket/${ticket.id}`}>
+              <S.TicketCard key={ticket.id} as={Link} to={`/funcionario/atendimentos?ticketId=${ticket.id}`}>
                 <S.TicketCardTop>
                   <S.TicketId>#{ticket.id}</S.TicketId>
                   <S.StatusBadge $variant={STATUS_VARIANT[ticket.status] || "open"}>
