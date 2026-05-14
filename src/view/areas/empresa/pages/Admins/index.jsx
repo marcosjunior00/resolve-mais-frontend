@@ -599,6 +599,13 @@ const CompanyAdminsPage = () => {
                             {employee.phone || "-"} | Cargo: {employee.jobTitle || "-"}
                           </S.InfoRow>
                           <S.RowActions>
+                            <Button
+                              variant="transparent"
+                              type="button"
+                              redirect={`/empresa/administradores/desempenho/${employee.id}`}
+                            >
+                              Ver desempenho
+                            </Button>
                             {employee.isAdmin ? (
                               <Button
                                 variant="transparent"

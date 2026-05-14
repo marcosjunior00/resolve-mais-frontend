@@ -45,6 +45,7 @@ const LoggedHeader = () => {
     if (userType === USER_TYPES.FUNCIONARIO) {
       return [
         { key: "home", label: "Home", path: "/funcionario/home" },
+        { key: "performance", label: "Meu desempenho", path: "/funcionario/desempenho" },
         { key: "configuracoes", label: "Configurações", path: "/funcionario/configuracoes" },
         { key: "atendimentos", label: "Atendimentos", path: "/funcionario/atendimentos" },
       ];
@@ -68,7 +69,12 @@ const LoggedHeader = () => {
 
   const isActivePage = (path) => {
     const currentPath = location.pathname.toLowerCase();
-    return currentPath === path.toLowerCase();
+    const normalizedPath = path.toLowerCase();
+
+    return (
+      currentPath === normalizedPath ||
+      currentPath.startsWith(`${normalizedPath}/`)
+    );
   };
 
   const getUserInitials = () => {

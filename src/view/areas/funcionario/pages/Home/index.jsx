@@ -17,6 +17,12 @@ const IconLogs = () => (
   </svg>
 );
 
+const IconPerformance = () => (
+  <svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16 11V3H21V11H16ZM3 13H8V21H3V13ZM10 21V8H15V21H10ZM16 21V13H21V21H16ZM3 11V3H8V11H3Z" />
+  </svg>
+);
+
 const STATUS_LABEL = {
   aberto: "Aberto",
   pendente: "Pendente",
@@ -114,6 +120,11 @@ export default function EmployeeHome() {
             <S.ActionCard as={Link} to="/funcionario/atendimentos" aria-label="Workspace">
               <S.ActionIcon><IconInbox /></S.ActionIcon>
               Meus Atendimentos
+            </S.ActionCard>
+
+            <S.ActionCard as={Link} to="/funcionario/desempenho" aria-label="Meu desempenho">
+              <S.ActionIcon><IconPerformance /></S.ActionIcon>
+              Meu desempenho
             </S.ActionCard>
 
             <S.ActionCard as={Link} to="/funcionario/CompanyInfo" aria-label="Informações da empresa" $secondary>

@@ -32,6 +32,7 @@ import CompanySettings from "../view/areas/empresa/pages/Settings";
 import CompanyTicketsPage from "../view/areas/empresa/pages/Tickets";
 import CompanyUserData from "../view/areas/empresa/pages/UserData";
 import CompanyInfo from "../view/areas/funcionario/pages/CompanyInfo";
+import EmployeePerformancePage from "../view/areas/shared/pages/EmployeePerformance";
 
 import RoleGate from "./RoleGate";
 import { USER_TYPES } from "../utils/userType";
@@ -137,6 +138,14 @@ const AppRoutes = () => (
           </RoleGate>
         }
       />
+      <Route
+        path="/funcionario/desempenho"
+        element={
+          <RoleGate allowedTypes={[USER_TYPES.FUNCIONARIO]}>
+            <EmployeePerformancePage />
+          </RoleGate>
+        }
+      />
 
       <Route
         path="/empresa/home"
@@ -191,6 +200,14 @@ const AppRoutes = () => (
         element={
           <RoleGate allowedTypes={[USER_TYPES.EMPRESA]}>
             <CompanyAdmins />
+          </RoleGate>
+        }
+      />
+      <Route
+        path="/empresa/administradores/desempenho/:employeeId"
+        element={
+          <RoleGate allowedTypes={[USER_TYPES.EMPRESA]}>
+            <EmployeePerformancePage />
           </RoleGate>
         }
       />
