@@ -227,16 +227,159 @@ export const SectionText = styled.p`
   line-height: 1.5;
 `;
 
+export const FilterAnchor = styled.div`
+  position: relative;
+  display: grid;
+  gap: 6px;
+`;
+
+export const TicketFilterHeader = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+`;
+
 export const SearchInput = styled.input`
   width: 100%;
   border: 1px solid #d4dce2;
   border-radius: 12px;
-  padding: 11px 14px;
+  padding: 9px 12px;
   outline: none;
 
   &:focus {
     border-color: #10b981;
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+  }
+`;
+
+export const FilterToggleButton = styled.button`
+  min-height: 38px;
+  border: 1px solid ${({ $active }) => ($active ? "#10b981" : "#d4dce2")};
+  border-radius: 12px;
+  padding: 0 12px;
+  background: ${({ $active }) => ($active ? "#ecfdf5" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#047857" : "#334155")};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: 0.2s ease;
+
+  &:hover {
+    border-color: #10b981;
+    color: #047857;
+  }
+
+  @media (max-width: 420px) {
+    span {
+      display: none;
+    }
+  }
+`;
+
+export const FilterPanel = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: grid;
+  gap: 10px;
+  max-height: min(62vh, 460px);
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #dce4e8;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18);
+`;
+
+export const FilterGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+`;
+
+export const FilterField = styled.label`
+  display: grid;
+  gap: 4px;
+`;
+
+export const FilterLabel = styled.span`
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+export const FilterSelect = styled.select`
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #d4dce2;
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+
+  &:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+  }
+`;
+
+export const FilterInput = styled.input`
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #d4dce2;
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+
+  &:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+  }
+`;
+
+export const FilterFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const FilterResultCount = styled.span`
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.4;
+`;
+
+export const ClearFiltersButton = styled.button`
+  min-height: 34px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #334155;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: 0.2s ease;
+
+  &:hover {
+    border-color: #10b981;
+    color: #047857;
   }
 `;
 

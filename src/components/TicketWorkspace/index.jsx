@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Filter, RotateCcw } from "lucide-react";
 
 import * as S from "./styles";
 
@@ -64,6 +65,83 @@ const getDefaultHeroText = (mode) => {
 };
 
 const EVALUATION_RATING_OPTIONS = [1, 2, 3, 4, 5];
+const TICKET_SEARCH_FIELD_OPTIONS = [
+  { value: "all", label: "Todos os campos" },
+  { value: "protocol", label: "Protocolo" },
+  { value: "company", label: "Empresa" },
+  { value: "customer", label: "Cliente" },
+  { value: "subject", label: "Assunto" },
+  { value: "responsible", label: "Responsável" },
+  { value: "description", label: "Descrição" },
+];
+const TICKET_DATE_FIELD_OPTIONS = [
+  { value: "updatedAt", label: "Última atualização" },
+  { value: "createdAt", label: "Data de abertura" },
+  { value: "acceptedAt", label: "Data de aceite" },
+  { value: "resolvedAt", label: "Data de resolução" },
+];
+const DEFAULT_TICKET_FILTERS = {
+  searchField: "all",
+  status: "all",
+  responsible: "all",
+  dateField: "updatedAt",
+  sortDirection: "desc",
+  dateFrom: "",
+  dateTo: "",
+};
+
+const normalizeFilterText = (value = "") =>
+  String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+const getDateKey = (value) => {
+  const parsedDate = new Date(value);
+
+  if (Number.isNaN(parsedDate.getTime())) return "";
+
+  const year = parsedDate.getFullYear();
+  const month = String(parsedDate.getMonth() + 1).padStart(2, "0");
+  const day = String(parsedDate.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+};
+
+const getTicketDateValue = (ticket, field) => {
+  const value = ticket?.[field] || ticket?.updatedAt || ticket?.createdAt || "";
+  const parsedDate = new Date(value);
+
+  return Number.isNaN(parsedDate.getTime()) ? 0 : parsedDate.getTime();
+};
+
+const getTicketSearchValues = (ticket, field) => {
+  const valuesByField = {
+    protocol: [ticket?.protocol, ticket?.id ? buildTicketProtocol(ticket.id) : ""],
+    company: [ticket?.company?.name, ticket?.company?.cnpj],
+    customer: [ticket?.customer?.name, ticket?.customer?.email, ticket?.customer?.cpf],
+    subject: [ticket?.complaintTitle?.title, ticket?.complaintTitle?.description],
+    responsible: [ticket?.assignedEmployee?.name, ticket?.assignedEmployee?.email],
+    description: [ticket?.description],
+  };
+
+  if (field !== "all") return valuesByField[field] || [];
+
+  return Object.values(valuesByField).flat();
+};
+
+const isTicketInsideDateRange = ({ ticket, dateField, dateFrom, dateTo }) => {
+  if (!dateFrom && !dateTo) return true;
+
+  const ticketDateKey = getDateKey(ticket?.[dateField]);
+  if (!ticketDateKey) return false;
+
+  if (dateFrom && ticketDateKey < dateFrom) return false;
+  if (dateTo && ticketDateKey > dateTo) return false;
+
+  return true;
+};
 
 const getEvaluationCopy = (ticket) => {
   if (ticket?.evaluation?.resolutionSource === "chatbot") {
@@ -156,6 +234,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [logs, setLogs] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [ticketSearch, setTicketSearch] = useState("");
+  const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
+  const [ticketFilters, setTicketFilters] = useState(DEFAULT_TICKET_FILTERS);
   const [composerText, setComposerText] = useState("");
   const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
@@ -175,22 +255,55 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const isCustomerMode = mode === "customer";
 
   const filteredTickets = useMemo(() => {
-    const term = ticketSearch.trim().toLowerCase();
+    const term = normalizeFilterText(ticketSearch);
 
-    if (!term) return workspace.tickets;
+    return [...workspace.tickets]
+      .filter((ticket) => {
+        if (
+          ticketFilters.status !== "all" &&
+          String(ticket.status || "").toLowerCase() !== ticketFilters.status
+        ) {
+          return false;
+        }
 
-    return workspace.tickets.filter((ticket) =>
-      [
-        ticket.protocol,
-        ticket.company?.name,
-        ticket.customer?.name,
-        ticket.complaintTitle?.title,
-        ticket.assignedEmployee?.name,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term))
-    );
-  }, [ticketSearch, workspace.tickets]);
+        if (ticketFilters.responsible === "assigned" && !ticket.assignedEmployee?.id) {
+          return false;
+        }
+
+        if (ticketFilters.responsible === "unassigned" && ticket.assignedEmployee?.id) {
+          return false;
+        }
+
+        if (
+          !isTicketInsideDateRange({
+            ticket,
+            dateField: ticketFilters.dateField,
+            dateFrom: ticketFilters.dateFrom,
+            dateTo: ticketFilters.dateTo,
+          })
+        ) {
+          return false;
+        }
+
+        if (!term) return true;
+
+        return getTicketSearchValues(ticket, ticketFilters.searchField).some(
+          (value) => normalizeFilterText(value).includes(term)
+        );
+      })
+      .sort((left, right) => {
+        const leftTime = getTicketDateValue(left, ticketFilters.dateField);
+        const rightTime = getTicketDateValue(right, ticketFilters.dateField);
+
+        if (leftTime === rightTime) {
+          return Number(right.id || 0) - Number(left.id || 0);
+        }
+
+        return ticketFilters.sortDirection === "asc"
+          ? leftTime - rightTime
+          : rightTime - leftTime;
+      });
+  }, [ticketFilters, ticketSearch, workspace.tickets]);
 
   const composerDisabled = useMemo(() => {
     if (!selectedTicket) return true;
@@ -576,6 +689,18 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     }
 
     setSelectedTicketId(String(ticketId));
+  };
+
+  const updateTicketFilter = (field, value) => {
+    setTicketFilters((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const clearTicketFilters = () => {
+    setTicketSearch("");
+    setTicketFilters(DEFAULT_TICKET_FILTERS);
   };
 
   const handleMessagesScroll = (event) => {
@@ -1088,11 +1213,141 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
               </S.SectionText>
             </div>
 
-            <S.SearchInput
-              value={ticketSearch}
-              onChange={(event) => setTicketSearch(event.target.value)}
-              placeholder="Buscar por protocolo, empresa ou assunto"
-            />
+            <S.FilterAnchor>
+            <S.TicketFilterHeader>
+              <S.SearchInput
+                value={ticketSearch}
+                onChange={(event) => setTicketSearch(event.target.value)}
+                placeholder="Buscar tickets"
+              />
+              <S.FilterToggleButton
+                type="button"
+                $active={isFilterPanelOpen}
+                onClick={() => setIsFilterPanelOpen((previous) => !previous)}
+                title="Abrir filtros"
+                aria-expanded={isFilterPanelOpen}
+              >
+                <Filter size={17} aria-hidden="true" />
+                <span>Filtros</span>
+              </S.FilterToggleButton>
+            </S.TicketFilterHeader>
+
+            {isFilterPanelOpen ? (
+              <S.FilterPanel>
+                <S.FilterGrid>
+                  <S.FilterField>
+                    <S.FilterLabel>Buscar em</S.FilterLabel>
+                    <S.FilterSelect
+                      value={ticketFilters.searchField}
+                      onChange={(event) =>
+                        updateTicketFilter("searchField", event.target.value)
+                      }
+                    >
+                      {TICKET_SEARCH_FIELD_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </S.FilterSelect>
+                  </S.FilterField>
+
+                  <S.FilterField>
+                    <S.FilterLabel>Status</S.FilterLabel>
+                    <S.FilterSelect
+                      value={ticketFilters.status}
+                      onChange={(event) =>
+                        updateTicketFilter("status", event.target.value)
+                      }
+                    >
+                      <option value="all">Todos</option>
+                      <option value="aberto">Aberto</option>
+                      <option value="pendente">Em atendimento</option>
+                      <option value="resolvido">Resolvido</option>
+                    </S.FilterSelect>
+                  </S.FilterField>
+
+                  <S.FilterField>
+                    <S.FilterLabel>Responsável</S.FilterLabel>
+                    <S.FilterSelect
+                      value={ticketFilters.responsible}
+                      onChange={(event) =>
+                        updateTicketFilter("responsible", event.target.value)
+                      }
+                    >
+                      <option value="all">Todos</option>
+                      <option value="assigned">Com responsável</option>
+                      <option value="unassigned">Sem responsável</option>
+                    </S.FilterSelect>
+                  </S.FilterField>
+
+                  <S.FilterField>
+                    <S.FilterLabel>Data usada</S.FilterLabel>
+                    <S.FilterSelect
+                      value={ticketFilters.dateField}
+                      onChange={(event) =>
+                        updateTicketFilter("dateField", event.target.value)
+                      }
+                    >
+                      {TICKET_DATE_FIELD_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </S.FilterSelect>
+                  </S.FilterField>
+
+                  <S.FilterField>
+                    <S.FilterLabel>Ordenação</S.FilterLabel>
+                    <S.FilterSelect
+                      value={ticketFilters.sortDirection}
+                      onChange={(event) =>
+                        updateTicketFilter("sortDirection", event.target.value)
+                      }
+                    >
+                      <option value="desc">Mais recentes primeiro</option>
+                      <option value="asc">Mais antigos primeiro</option>
+                    </S.FilterSelect>
+                  </S.FilterField>
+
+                  <S.FilterField>
+                    <S.FilterLabel>De</S.FilterLabel>
+                    <S.FilterInput
+                      type="date"
+                      value={ticketFilters.dateFrom}
+                      onChange={(event) =>
+                        updateTicketFilter("dateFrom", event.target.value)
+                      }
+                    />
+                  </S.FilterField>
+
+                  <S.FilterField>
+                    <S.FilterLabel>Até</S.FilterLabel>
+                    <S.FilterInput
+                      type="date"
+                      value={ticketFilters.dateTo}
+                      onChange={(event) =>
+                        updateTicketFilter("dateTo", event.target.value)
+                      }
+                    />
+                  </S.FilterField>
+                </S.FilterGrid>
+
+                <S.FilterFooter>
+                  <S.FilterResultCount>
+                    {filteredTickets.length} de {workspace.tickets.length} ticket(s)
+                  </S.FilterResultCount>
+                  <S.ClearFiltersButton type="button" onClick={clearTicketFilters}>
+                    <RotateCcw size={15} aria-hidden="true" />
+                    Limpar
+                  </S.ClearFiltersButton>
+                </S.FilterFooter>
+              </S.FilterPanel>
+            ) : (
+              <S.FilterResultCount>
+                {filteredTickets.length} de {workspace.tickets.length} ticket(s)
+              </S.FilterResultCount>
+            )}
+            </S.FilterAnchor>
 
             <S.TicketList>
               {workspaceLoading ? (
