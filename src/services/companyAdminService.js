@@ -8,9 +8,10 @@ const withAuthHeader = () => {
 };
 
 export const companyAdminService = {
-  list: async () => {
+  list: async (params = {}) => {
     const response = await api.get("/companies/my-company/admins", {
       headers: withAuthHeader(),
+      params,
     });
     return response.data;
   },
@@ -38,9 +39,10 @@ export const companyAdminService = {
     return response.data;
   },
 
-  listEmployees: async () => {
+  listEmployees: async (params = {}) => {
     const response = await api.get("/companies/my-company/employees", {
       headers: withAuthHeader(),
+      params,
     });
     return response.data;
   },

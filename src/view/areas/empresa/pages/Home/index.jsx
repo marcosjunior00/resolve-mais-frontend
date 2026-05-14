@@ -52,12 +52,12 @@ const QUICK_ACTIONS = [
     variant: "secondary",
   },
   {
-    label: "Administradores",
+    label: "Colaboradores",
     meta: "Governança",
     title: "Defina quem cuida da operação",
     description:
       "Organize os responsáveis pela empresa e mantenha a administração pronta para crescer sem confusões.",
-    buttonLabel: "Ver administradores",
+    buttonLabel: "Ver colaboradores",
     path: "/empresa/administradores",
     variant: "transparent",
   },

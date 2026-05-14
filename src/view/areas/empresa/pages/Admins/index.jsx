@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import * as S from "./styles";
@@ -9,6 +9,36 @@ import PhoneInput from "../../../../../components/PhoneInput";
 import Button from "../../../../../components/Button";
 import { useSnack } from "../../../../../contexts/SnackContext";
 import { companyAdminService } from "../../../../../services/companyAdminService";
+
+const DEFAULT_PAGINATION = {
+  page: 1,
+  pageSize: 5,
+  total: 0,
+  totalPages: 1,
+};
+const PAGE_SIZE_OPTIONS = [5, 10, 20];
+
+const buildFallbackPagination = (items, pageSize = DEFAULT_PAGINATION.pageSize) => ({
+  page: 1,
+  pageSize,
+  total: items.length,
+  totalPages: Math.max(1, Math.ceil(items.length / pageSize)),
+});
+
+const getPersonInitials = (name = "") => {
+  const parts = String(name).trim().split(/\s+/).filter(Boolean);
+
+  if (parts.length === 0) return "CO";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0].charAt(0)}${parts[parts.length - 1].charAt(0)}`.toUpperCase();
+};
+
+const getAvatarUrl = (person) => {
+  const avatarUrl = person?.avatarUrl || person?.avatar_url || "";
+
+  return typeof avatarUrl === "string" ? avatarUrl.trim() : "";
+};
 
 const CompanyAdminsPage = () => {
   const { showSnack } = useSnack();
@@ -25,6 +55,16 @@ const CompanyAdminsPage = () => {
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [adminSearch, setAdminSearch] = useState("");
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [adminSearchTerm, setAdminSearchTerm] = useState("");
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState("");
+  const [adminRoleFilter, setAdminRoleFilter] = useState("all");
+  const [adminPage, setAdminPage] = useState(DEFAULT_PAGINATION.page);
+  const [employeePage, setEmployeePage] = useState(DEFAULT_PAGINATION.page);
+  const [adminPageSize, setAdminPageSize] = useState(DEFAULT_PAGINATION.pageSize);
+  const [employeePageSize, setEmployeePageSize] = useState(DEFAULT_PAGINATION.pageSize);
+  const [adminPagination, setAdminPagination] = useState(DEFAULT_PAGINATION);
+  const [employeePagination, setEmployeePagination] = useState(DEFAULT_PAGINATION);
+  const [avatarLoadErrors, setAvatarLoadErrors] = useState({});
 
   const adminForm = useForm({
     defaultValues: {
@@ -63,8 +103,17 @@ const CompanyAdminsPage = () => {
         setLoading(true);
 
         const [adminsResponse, employeesResponse] = await Promise.all([
-          companyAdminService.list(),
-          companyAdminService.listEmployees(),
+          companyAdminService.list({
+            page: adminPage,
+            pageSize: adminPageSize,
+            search: adminSearchTerm,
+            adminRole: adminRoleFilter,
+          }),
+          companyAdminService.listEmployees({
+            page: employeePage,
+            pageSize: employeePageSize,
+            search: employeeSearchTerm,
+          }),
         ]);
 
         const companyData =
@@ -73,6 +122,28 @@ const CompanyAdminsPage = () => {
         setCompany(companyData);
         setAdmins(adminsResponse.admins || []);
         setEmployees(employeesResponse.employees || []);
+        setAdminPagination(
+          adminsResponse.pagination ||
+            buildFallbackPagination(adminsResponse.admins || [], adminPageSize),
+        );
+        setEmployeePagination(
+          employeesResponse.pagination ||
+            buildFallbackPagination(employeesResponse.employees || [], employeePageSize),
+        );
+
+        if (
+          adminsResponse.pagination?.page &&
+          adminsResponse.pagination.page !== adminPage
+        ) {
+          setAdminPage(adminsResponse.pagination.page);
+        }
+
+        if (
+          employeesResponse.pagination?.page &&
+          employeesResponse.pagination.page !== employeePage
+        ) {
+          setEmployeePage(employeesResponse.pagination.page);
+        }
 
         if (!keepEditingEmployee) {
           setEditingEmployeeId(null);
@@ -88,12 +159,39 @@ const CompanyAdminsPage = () => {
         setLoading(false);
       }
     },
-    [showSnack],
+    [
+      adminPage,
+      adminPageSize,
+      adminRoleFilter,
+      adminSearchTerm,
+      employeePage,
+      employeePageSize,
+      employeeSearchTerm,
+      showSnack,
+    ],
   );
 
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setAdminPage(1);
+      setAdminSearchTerm(adminSearch.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [adminSearch]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setEmployeePage(1);
+      setEmployeeSearchTerm(employeeSearch.trim());
+    }, 350);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [employeeSearch]);
 
   const createAdmin = async (formData) => {
     try {
@@ -228,12 +326,9 @@ const CompanyAdminsPage = () => {
 
     try {
       setSaving(true);
-      const response = await companyAdminService.updateEmployee(
-        editingEmployeeId,
-        formData,
-      );
-      setEmployees(response.employees || []);
+      await companyAdminService.updateEmployee(editingEmployeeId, formData);
       setEditingEmployeeId(null);
+      await loadAllData();
       showSnack({
         variant: "success",
         message: "Funcionário atualizado com sucesso.",
@@ -275,53 +370,94 @@ const CompanyAdminsPage = () => {
   const editingEmployee =
     employees.find((employee) => employee.id === editingEmployeeId) || null;
 
-  const mergedEmployees = useMemo(() => {
-    const adminById = new Map(admins.map((admin) => [admin.id, admin]));
-    const map = new Map();
+  const adminTotal = adminPagination.total ?? admins.length;
+  const employeeTotal = employeePagination.total ?? employees.length;
 
-    employees.forEach((employee) => {
-      const admin = adminById.get(employee.id);
-      map.set(employee.id, {
-        ...employee,
-        isAdmin: Boolean(admin),
-        isPrimaryAdmin: Boolean(admin?.isPrimary),
-      });
-    });
+  const handleAvatarError = (avatarKey) => {
+    setAvatarLoadErrors((previous) => ({
+      ...previous,
+      [avatarKey]: true,
+    }));
+  };
 
-    adminById.forEach((admin) => {
-      if (!map.has(admin.id)) {
-        map.set(admin.id, {
-          ...admin,
-          isAdmin: true,
-          isPrimaryAdmin: Boolean(admin.isPrimary),
-        });
-      }
-    });
+  const renderPersonAvatar = (person, avatarKeyPrefix) => {
+    const avatarKey = `${avatarKeyPrefix}-${person.id || person.email || person.name}`;
+    const avatarUrl = getAvatarUrl(person);
+    const shouldShowAvatarImage = Boolean(avatarUrl) && !avatarLoadErrors[avatarKey];
 
-    return Array.from(map.values()).sort((a, b) =>
-      String(a.name || "").localeCompare(String(b.name || "")),
+    return (
+      <S.PersonAvatar aria-hidden="true">
+        {shouldShowAvatarImage ? (
+          <S.PersonAvatarImage
+            src={avatarUrl}
+            alt=""
+            onError={() => handleAvatarError(avatarKey)}
+          />
+        ) : (
+          getPersonInitials(person.name)
+        )}
+      </S.PersonAvatar>
     );
-  }, [admins, employees]);
+  };
 
-  const filteredAdmins = useMemo(() => {
-    const term = adminSearch.trim().toLowerCase();
-    if (!term) return admins;
-    return admins.filter((admin) =>
-      [admin.name, admin.email, admin.jobTitle]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
-    );
-  }, [admins, adminSearch]);
+  const renderPagination = ({
+    pagination,
+    onPageChange,
+    onPageSizeChange,
+  }) => {
+    const page = pagination.page || DEFAULT_PAGINATION.page;
+    const pageSize = pagination.pageSize || DEFAULT_PAGINATION.pageSize;
+    const total = pagination.total || 0;
+    const totalPages = pagination.totalPages || 1;
+    const startItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+    const endItem = Math.min(total, page * pageSize);
 
-  const filteredEmployees = useMemo(() => {
-    const term = employeeSearch.trim().toLowerCase();
-    if (!term) return mergedEmployees;
-    return mergedEmployees.filter((employee) =>
-      [employee.name, employee.email, employee.jobTitle]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(term)),
+    return (
+      <S.PaginationBar>
+        <S.PageSummary>
+          {total === 0
+            ? "Nenhum resultado"
+            : `${startItem}-${endItem} de ${total} resultado(s)`}
+        </S.PageSummary>
+
+        <S.PageControls>
+          <S.PageSizeLabel>
+            Exibir
+            <S.PageSizeSelect
+              value={pageSize}
+              onChange={(event) => onPageSizeChange(Number(event.target.value))}
+            >
+              {PAGE_SIZE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </S.PageSizeSelect>
+          </S.PageSizeLabel>
+
+          <S.PaginationActions>
+            <S.PaginationButton
+              type="button"
+              disabled={page <= 1 || loading}
+              onClick={() => onPageChange(page - 1)}
+            >
+              Anterior
+            </S.PaginationButton>
+            <S.PageIndicator>
+              Página {page} de {totalPages}
+            </S.PageIndicator>
+            <S.PaginationButton
+              type="button"
+              disabled={page >= totalPages || loading}
+              onClick={() => onPageChange(page + 1)}
+            >
+              Próxima
+            </S.PaginationButton>
+          </S.PaginationActions>
+        </S.PageControls>
+      </S.PaginationBar>
     );
-  }, [employeeSearch, mergedEmployees]);
+  };
 
   return (
     <S.Page>
@@ -331,7 +467,7 @@ const CompanyAdminsPage = () => {
         <S.Card>
           <S.HeaderRow>
             <div>
-              <S.CardTitle>Administradores e Funcionários</S.CardTitle>
+              <S.CardTitle>Colaboradores da empresa</S.CardTitle>
               {!loading && company && (
                 <S.CardText>
                   {company.name} - CNPJ: {company.cnpj}
@@ -341,11 +477,11 @@ const CompanyAdminsPage = () => {
             <S.HeaderStats>
               <S.Stat>
                 <span>Administradores</span>
-                <strong>{admins.length}</strong>
+                <strong>{adminTotal}</strong>
               </S.Stat>
               <S.Stat>
                 <span>Funcionários</span>
-                <strong>{mergedEmployees.length}</strong>
+                <strong>{employeeTotal}</strong>
               </S.Stat>
             </S.HeaderStats>
           </S.HeaderRow>
@@ -358,14 +494,14 @@ const CompanyAdminsPage = () => {
               data-active={activeTab === "employees"}
               onClick={() => setActiveTab("employees")}
             >
-              Funcionários <S.TabCount>{mergedEmployees.length}</S.TabCount>
+              Funcionários <S.TabCount>{employeeTotal}</S.TabCount>
             </S.TabButton>
             <S.TabButton
               type="button"
               data-active={activeTab === "admins"}
               onClick={() => setActiveTab("admins")}
             >
-              Administradores <S.TabCount>{admins.length}</S.TabCount>
+              Administradores <S.TabCount>{adminTotal}</S.TabCount>
             </S.TabButton>
           </S.TabsHeader>
 
@@ -375,8 +511,7 @@ const CompanyAdminsPage = () => {
                 <div>
                   <S.SectionTitle>Funcionários</S.SectionTitle>
                   <S.TabDescription>
-                    Administradores também aparecem aqui para facilitar a visualização
-                    do time.
+                    Pesquise, edite e remova funcionários vinculados à empresa.
                   </S.TabDescription>
                 </div>
               </S.TabHeader>
@@ -446,56 +581,68 @@ const CompanyAdminsPage = () => {
 
               <S.InfosContainer>
                 {loading && <p>Carregando funcionários...</p>}
-                {!loading && filteredEmployees.length === 0 && (
+                {!loading && employees.length === 0 && (
                   <S.EmptyState>Nenhum funcionário encontrado.</S.EmptyState>
                 )}
                 {!loading &&
-                  filteredEmployees.map((employee) => (
+                  employees.map((employee) => (
                     <S.ItemRow key={employee.id}>
-                      <div>
-                        <strong>{employee.name}</strong> ({employee.email})
-                        {employee.isAdmin && (
-                          <S.Badge $tone="neutral">Administrador</S.Badge>
-                        )}
-                        {employee.isPrimaryAdmin && <S.Badge>Principal</S.Badge>}
-                      </div>
-                      <S.InfoRow>
-                        CPF: {employee.cpf || "-"} | Telefone:{" "}
-                        {employee.phone || "-"} | Cargo: {employee.jobTitle || "-"}
-                      </S.InfoRow>
-                      <S.RowActions>
-                        {employee.isAdmin ? (
-                          <Button
-                            variant="transparent"
-                            type="button"
-                            onClick={() => setActiveTab("admins")}
-                          >
-                            Gerenciar na aba Administradores
-                          </Button>
-                        ) : (
-                          <>
-                            <Button
-                              variant="transparent"
-                              type="button"
-                              disabled={saving}
-                              onClick={() => startEditEmployee(employee)}
-                            >
-                              Editar
-                            </Button>
-                            <Button
-                              variant="secondary"
-                              type="button"
-                              disabled={saving}
-                              onClick={() => removeEmployee(employee.id)}
-                            >
-                              Remover da empresa
-                            </Button>
-                          </>
-                        )}
-                      </S.RowActions>
+                      <S.PersonRow>
+                        {renderPersonAvatar(employee, "employee")}
+                        <S.PersonContent>
+                          <S.PersonHeader>
+                            <strong>{employee.name}</strong>
+                            <span>{employee.email}</span>
+                          </S.PersonHeader>
+                          <S.InfoRow>
+                            CPF: {employee.cpf || "-"} | Telefone:{" "}
+                            {employee.phone || "-"} | Cargo: {employee.jobTitle || "-"}
+                          </S.InfoRow>
+                          <S.RowActions>
+                            {employee.isAdmin ? (
+                              <Button
+                                variant="transparent"
+                                type="button"
+                                onClick={() => setActiveTab("admins")}
+                              >
+                                Gerenciar na aba Administradores
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="transparent"
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => startEditEmployee(employee)}
+                                >
+                                  Editar
+                                </Button>
+                                <Button
+                                  variant="secondary"
+                                  type="button"
+                                  disabled={saving}
+                                  onClick={() => removeEmployee(employee.id)}
+                                >
+                                  Remover da empresa
+                                </Button>
+                              </>
+                            )}
+                          </S.RowActions>
+                        </S.PersonContent>
+                      </S.PersonRow>
                     </S.ItemRow>
                   ))}
               </S.InfosContainer>
+
+              {!loading &&
+                renderPagination({
+                  pagination: employeePagination,
+                  onPageChange: setEmployeePage,
+                  onPageSizeChange: (nextPageSize) => {
+                    setEmployeePageSize(nextPageSize);
+                    setEmployeePage(1);
+                  },
+                })}
 
               {editingEmployee && (
                 <S.Panel>
@@ -559,11 +706,24 @@ const CompanyAdminsPage = () => {
               </S.TabHeader>
 
               <S.ActionBar>
-                <S.SearchInput
-                  value={adminSearch}
-                  onChange={(event) => setAdminSearch(event.target.value)}
-                  placeholder="Buscar por nome, e-mail ou cargo"
-                />
+                <S.FilterRow>
+                  <S.SearchInput
+                    value={adminSearch}
+                    onChange={(event) => setAdminSearch(event.target.value)}
+                    placeholder="Buscar por nome, e-mail ou cargo"
+                  />
+                  <S.FilterSelect
+                    value={adminRoleFilter}
+                    onChange={(event) => {
+                      setAdminRoleFilter(event.target.value);
+                      setAdminPage(1);
+                    }}
+                  >
+                    <option value="all">Todos os vínculos</option>
+                    <option value="primary">Principal</option>
+                    <option value="secondary">Demais administradores</option>
+                  </S.FilterSelect>
+                </S.FilterRow>
                 <Button
                   variant="primary"
                   type="button"
@@ -576,112 +736,137 @@ const CompanyAdminsPage = () => {
 
               {showAdminPanel && (
                 <S.Panel>
-                  <S.SectionGrid>
-                    <S.SectionContent>
-                      <S.SectionAssociateAdmin>
-                        <S.Label>E-mail para associar admin existente:</S.Label>
-                        <S.AssociateEmailInput
-                          value={associateEmail}
-                          onChange={(event) => setAssociateEmail(event.target.value)}
-                          placeholder="usuario@empresa.com"
-                        />
-                      </S.SectionAssociateAdmin>
-                      <S.SectionButtons>
-                        <Button
-                          variant="primary"
-                          type="button"
-                          onClick={associateExistingAdmin}
-                          disabled={saving}
-                          full
-                        >
-                          Associar
-                        </Button>
-                      </S.SectionButtons>
-                    </S.SectionContent>
+                  <S.AdminPanelLayout>
+                    <S.AssociateStrip>
+                      <S.AssociateTitle>Associar administrador existente</S.AssociateTitle>
+                      <S.AssociateControls>
+                        <S.AssociateEmailGroup>
+                          <S.Label>E-mail do administrador:</S.Label>
+                          <S.AssociateEmailInput
+                            value={associateEmail}
+                            onChange={(event) => setAssociateEmail(event.target.value)}
+                            placeholder="usuario@empresa.com"
+                          />
+                        </S.AssociateEmailGroup>
+                        <S.AssociateActions>
+                          <Button
+                            variant="primary"
+                            type="button"
+                            onClick={associateExistingAdmin}
+                            disabled={saving}
+                            full
+                          >
+                            Associar
+                          </Button>
+                        </S.AssociateActions>
+                      </S.AssociateControls>
+                    </S.AssociateStrip>
+
+                    <S.PanelDivider />
 
                     <S.Form onSubmit={adminForm.handleSubmit(createAdmin)}>
                       <S.FormTitle>Criar novo administrador</S.FormTitle>
-                      <Input
-                        label="Nome:"
-                        placeholder="Nome completo"
-                        type="text"
-                        register={adminForm.register("name")}
-                      />
-                      <Input
-                        label="E-mail:"
-                        placeholder="usuario@empresa.com"
-                        type="text"
-                        register={adminForm.register("email")}
-                      />
-                      <PhoneInput
-                        label="Telefone:"
-                        placeholder="(11) 99999-9999"
-                        control={adminForm.control}
-                        name="phone"
-                      />
-                      <CpfInput
-                        label="CPF:"
-                        placeholder="000.000.000-00"
-                        control={adminForm.control}
-                        name="cpf"
-                      />
-                      <Input
-                        label="Cargo:"
-                        placeholder="Ex: Coordenador de Suporte"
-                        type="text"
-                        register={adminForm.register("jobTitle")}
-                      />
-                      <Input
-                        label="Senha:"
-                        placeholder="Senha"
-                        type="password"
-                        register={adminForm.register("password")}
-                      />
-                      <Button variant="primary" type="submit" disabled={saving}>
-                        Criar e associar admin
-                      </Button>
+                      <S.AdminFormGrid>
+                        <Input
+                          label="Nome:"
+                          placeholder="Nome completo"
+                          type="text"
+                          register={adminForm.register("name")}
+                        />
+                        <Input
+                          label="E-mail:"
+                          placeholder="usuario@empresa.com"
+                          type="text"
+                          register={adminForm.register("email")}
+                        />
+                        <PhoneInput
+                          label="Telefone:"
+                          placeholder="(11) 99999-9999"
+                          control={adminForm.control}
+                          name="phone"
+                        />
+                        <CpfInput
+                          label="CPF:"
+                          placeholder="000.000.000-00"
+                          control={adminForm.control}
+                          name="cpf"
+                        />
+                        <Input
+                          label="Cargo:"
+                          placeholder="Ex: Coordenador de Suporte"
+                          type="text"
+                          register={adminForm.register("jobTitle")}
+                        />
+                        <Input
+                          label="Senha:"
+                          placeholder="Senha"
+                          type="password"
+                          register={adminForm.register("password")}
+                        />
+                      </S.AdminFormGrid>
+                      <S.FormActions>
+                        <Button variant="primary" type="submit" disabled={saving} full>
+                          Criar e associar admin
+                        </Button>
+                      </S.FormActions>
                     </S.Form>
-                  </S.SectionGrid>
+                  </S.AdminPanelLayout>
                 </S.Panel>
               )}
 
               <S.AdminsGroup>
                 {loading && <p>Carregando administradores...</p>}
-                {!loading && filteredAdmins.length === 0 && (
+                {!loading && admins.length === 0 && (
                   <S.EmptyState>Nenhum administrador encontrado.</S.EmptyState>
                 )}
                 {!loading &&
-                  filteredAdmins.map((admin) => (
+                  admins.map((admin) => (
                     <S.ItemRow key={admin.id}>
-                      <div>
-                        <strong>{admin.name}</strong> ({admin.email})
-                        {admin.isPrimary && <S.Badge>Principal</S.Badge>}
-                      </div>
-                      <S.InfoRow>
-                        CPF: {admin.cpf || "-"} | Telefone: {admin.phone || "-"} |
-                        Cargo: {admin.jobTitle || "-"}
-                      </S.InfoRow>
-                      <S.RowActions>
-                        <Button
-                          variant="transparent"
-                          type="button"
-                          disabled={saving || admin.isPrimary}
-                          onClick={() => setPrimary(admin.id)}
-                        >
-                          Tornar principal
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          type="button"
-                          disabled={saving}
-                          onClick={() => removeAdmin(admin.id)}
-                        >
-                          Remover
-                        </Button>
-                      </S.RowActions>
+                      <S.PersonRow>
+                        {renderPersonAvatar(admin, "admin")}
+                        <S.PersonContent>
+                          <S.PersonHeader>
+                            <strong>{admin.name}</strong>
+                            <span>{admin.email}</span>
+                            {admin.isPrimary && <S.Badge>Principal</S.Badge>}
+                          </S.PersonHeader>
+                          <S.InfoRow>
+                            CPF: {admin.cpf || "-"} | Telefone: {admin.phone || "-"} |
+                            Cargo: {admin.jobTitle || "-"}
+                          </S.InfoRow>
+                          <S.RowActions>
+                            <Button
+                              variant="transparent"
+                              type="button"
+                              disabled={saving || admin.isPrimary}
+                              onClick={() => setPrimary(admin.id)}
+                            >
+                              Tornar principal
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              type="button"
+                              disabled={saving}
+                              onClick={() => removeAdmin(admin.id)}
+                            >
+                              Remover
+                            </Button>
+                          </S.RowActions>
+                        </S.PersonContent>
+                      </S.PersonRow>
                     </S.ItemRow>
                   ))}
               </S.AdminsGroup>
+
+              {!loading &&
+                renderPagination({
+                  pagination: adminPagination,
+                  onPageChange: setAdminPage,
+                  onPageSizeChange: (nextPageSize) => {
+                    setAdminPageSize(nextPageSize);
+                    setAdminPage(1);
+                  },
+                })}
             </S.TabContent>
           )}
         </S.Card>

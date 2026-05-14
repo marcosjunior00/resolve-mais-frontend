@@ -141,11 +141,35 @@ export const ActionBar = styled.div`
     flex-wrap: wrap;
 `;
 
+export const FilterRow = styled.div`
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1 1 520px;
+`;
+
 export const SearchInput = styled.input`
     width: min(420px, 100%);
     border-radius: 10px;
     border: 1px solid rgba(15, 46, 47, .2);
     padding: 10px 12px;
+    outline: none;
+
+    &:focus {
+        outline: none;
+        border-color: #11754e;
+        box-shadow: 0 0 0 2px rgba(17, 117, 78, .2);
+    }
+`;
+
+export const FilterSelect = styled.select`
+    min-width: 190px;
+    border-radius: 10px;
+    border: 1px solid rgba(15, 46, 47, .2);
+    padding: 10px 12px;
+    background: #fff;
+    color: #123134;
     outline: none;
 
     &:focus {
@@ -172,6 +196,53 @@ export const ItemRow = styled.div`
     gap: 10px;
 `;
 
+export const PersonRow = styled.div`
+    display: grid;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 12px;
+    align-items: flex-start;
+`;
+
+export const PersonAvatar = styled.div`
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    flex: 0 0 auto;
+    background: #e7f8ef;
+    border: 1px solid rgba(17, 117, 78, .2);
+    color: #11754e;
+    font-weight: 800;
+    font-size: 15px;
+`;
+
+export const PersonAvatarImage = styled.img`
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+`;
+
+export const PersonContent = styled.div`
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+`;
+
+export const PersonHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-width: 0;
+
+    strong,
+    span {
+        overflow-wrap: anywhere;
+    }
+`;
+
 export const Badge = styled.span`
     display: inline-flex;
     padding: 4px 10px;
@@ -194,25 +265,72 @@ export const SectionTitle = styled.h2`
     color: #123134;
 `;
 
-export const SectionGrid = styled.div`
+export const AdminPanelLayout = styled.div`
     display: grid;
-    gap: 12px;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
 `;
 
-export const SectionContent = styled.div`
+export const AssociateStrip = styled.div`
     display: grid;
-    grid-template-columns: 1fr;
     gap: 10px;
+`;
 
-    @media (min-width: 680px) {
-        grid-template-columns: 1fr 180px;
+export const AssociateTitle = styled.h3`
+    margin: 0;
+    color: #315050;
+    font-size: 16px;
+`;
+
+export const AssociateControls = styled.div`
+    display: grid;
+    gap: 10px;
+    align-items: end;
+
+    @media (min-width: 720px) {
+        grid-template-columns: minmax(260px, 1fr) 180px;
     }
 `;
 
-export const SectionAssociateAdmin = styled.div`
+export const AssociateEmailGroup = styled.div`
     display: grid;
     gap: 6px;
+`;
+
+export const AssociateActions = styled.div`
+    display: flex;
+    align-items: flex-end;
+
+    button {
+        width: 100%;
+        min-height: 42px;
+    }
+`;
+
+export const PanelDivider = styled.div`
+    height: 1px;
+    background: rgba(15, 46, 47, .1);
+`;
+
+export const AdminFormGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+`;
+
+export const FormActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+
+    button {
+        max-width: 320px;
+        min-height: 42px;
+    }
+
+    @media (max-width: 620px) {
+        button {
+            max-width: none;
+        }
+    }
 `;
 
 export const AdminsGroup = styled.div`
@@ -229,6 +347,7 @@ export const Label = styled.label`
 
 export const AssociateEmailInput = styled.input`
     width: 100%;
+    height: 42px;
     border-radius: 10px;
     border: 1px solid rgba(15, 46, 47, .2);
     padding: 10px 12px;
@@ -239,10 +358,6 @@ export const AssociateEmailInput = styled.input`
         border-color: #11754e;
         box-shadow: 0 0 0 2px rgba(17, 117, 78, .2);
     }
-`;
-
-export const SectionButtons = styled.div`
-    align-self: flex-end;
 `;
 
 export const RowActions = styled.div`
@@ -283,4 +398,69 @@ export const EmptyState = styled.p`
     border: 1px dashed rgba(15, 46, 47, .2);
     background: #f6faf8;
     color: #3f5f60;
+`;
+
+export const PaginationBar = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 0 0;
+`;
+
+export const PageSummary = styled.span`
+    color: #456668;
+    font-size: 14px;
+`;
+
+export const PageControls = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+`;
+
+export const PageSizeLabel = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #456668;
+    font-size: 14px;
+`;
+
+export const PageSizeSelect = styled.select`
+    border-radius: 8px;
+    border: 1px solid rgba(15, 46, 47, .18);
+    padding: 7px 8px;
+    background: #fff;
+    color: #123134;
+`;
+
+export const PaginationActions = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+export const PaginationButton = styled.button`
+    border-radius: 8px;
+    border: 1px solid rgba(15, 46, 47, .18);
+    background: #fff;
+    color: #123134;
+    padding: 8px 10px;
+    cursor: pointer;
+    font-weight: 600;
+
+    &:disabled {
+        cursor: not-allowed;
+        opacity: .55;
+    }
+`;
+
+export const PageIndicator = styled.span`
+    color: #345657;
+    font-size: 14px;
+    font-weight: 600;
 `;

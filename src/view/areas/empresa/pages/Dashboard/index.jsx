@@ -30,7 +30,7 @@ const QUICK_ACTIONS = [
     variant: "primary",
   },
   {
-    label: "Equipe",
+    label: "Colaboradores",
     title: "Administradores e funcionários",
     description:
       "Veja quem está na operação, ajuste cargos e mantenha a equipe pronta para escalar.",

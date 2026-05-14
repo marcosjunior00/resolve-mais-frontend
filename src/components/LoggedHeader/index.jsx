@@ -38,7 +38,7 @@ const LoggedHeader = () => {
         { key: "insights", label: "Insights", path: "/empresa/insights" },
         { key: "tickets", label: "Chamados", path: "/empresa/chamados" },
         { key: "configuracoes", label: "Configurações", path: "/empresa/configuracoes" },
-        { key: "admins", label: "Administradores", path: "/empresa/administradores" },
+        { key: "admins", label: "Colaboradores", path: "/empresa/administradores" },
       ];
     }
 
