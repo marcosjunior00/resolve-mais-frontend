@@ -11,11 +11,11 @@ import { companyAdminService } from "../../../../../services/companyAdminService
 const COMPLAINT_TEMPLATES = [
   {
     title: "Demora na entrega",
-    description: "Atraso no prazo informado, falta de atualizacao do rastreio ou pedido ainda nao entregue.",
+    description: "Atraso no prazo informado, falta de atualização do rastreio ou pedido ainda não entregue.",
   },
   {
     title: "Problemas no site",
-    description: "Instabilidade, erro ao acessar, falha no login, carrinho ou conclusao da compra.",
+    description: "Instabilidade, erro ao acessar, falha no login, carrinho ou conclusão da compra.",
   },
   {
     title: "Problemas com o produto",
@@ -23,11 +23,11 @@ const COMPLAINT_TEMPLATES = [
   },
   {
     title: "Dificuldade no pagamento",
-    description: "Pagamento recusado, cobranca em duplicidade ou divergencia no valor final da compra.",
+    description: "Pagamento recusado, cobrança em duplicidade ou divergência no valor final da compra.",
   },
   {
-    title: "Troca ou devolucao",
-    description: "Solicitacao de troca, devolucao, estorno ou duvidas sobre politica de arrependimento.",
+    title: "Troca ou devolução",
+    description: "Solicitação de troca, devolução, estorno ou dúvidas sobre política de arrependimento.",
   },
 ];
 
@@ -55,7 +55,7 @@ const CompanyComplaintTitles = () => {
     } catch (error) {
       showSnack({
         variant: "error",
-        message: error?.response?.data?.message || "Nao foi possivel carregar os assuntos da empresa.",
+        message: error?.response?.data?.message || "Não foi possível carregar os assuntos da empresa.",
       });
     } finally {
       setLoading(false);
@@ -151,7 +151,7 @@ const CompanyComplaintTitles = () => {
 
         <S.Card>
           <S.TemplateTitleRow>
-            <S.SubsectionTitle>Templates de sugestao</S.SubsectionTitle>
+            <S.SubsectionTitle>Templates de sugestão</S.SubsectionTitle>
             <S.SupportingText>Use um modelo pronto e ajuste o texto se precisar.</S.SupportingText>
           </S.TemplateTitleRow>
 
@@ -172,7 +172,7 @@ const CompanyComplaintTitles = () => {
           <S.TemplateTitleRow>
             <S.SubsectionTitle>Novo assunto</S.SubsectionTitle>
             <S.SupportingText>
-              Cadastre um titulo claro e, se quiser, uma breve explicacao para orientar o cliente.
+              Cadastre um título claro e, se quiser, uma breve explicação para orientar o cliente.
             </S.SupportingText>
           </S.TemplateTitleRow>
 
@@ -188,15 +188,15 @@ const CompanyComplaintTitles = () => {
             />
 
             <S.FieldBlock>
-              <S.FieldLabel htmlFor="complaint-description">Descricao opcional:</S.FieldLabel>
+              <S.FieldLabel htmlFor="complaint-description">Descrição opcional:</S.FieldLabel>
               <S.TextArea
                 id="complaint-description"
                 rows={4}
-                placeholder="Ex.: pedido atrasado, rastreio sem atualizacao ou prazo excedido."
+                placeholder="Ex.: pedido atrasado, rastreio sem atualização ou prazo excedido."
                 {...complaintTitleForm.register("description")}
               />
               <S.SupportingText>
-                Essa descricao aparece junto ao assunto para ajudar o cliente a escolher a opcao correta.
+                Essa descrição aparece junto ao assunto para ajudar o cliente a escolher a opção correta.
               </S.SupportingText>
             </S.FieldBlock>
 
@@ -225,7 +225,7 @@ const CompanyComplaintTitles = () => {
           <S.TemplateTitleRow>
             <S.SubsectionTitle>Assuntos cadastrados</S.SubsectionTitle>
             <S.SupportingText>
-              Remova apenas os assuntos que nao fazem mais sentido para novos tickets.
+              Remova apenas os assuntos que não fazem mais sentido para novos tickets.
             </S.SupportingText>
           </S.TemplateTitleRow>
 
@@ -242,7 +242,7 @@ const CompanyComplaintTitles = () => {
                   <S.ComplaintContent>
                     <S.ComplaintName>{complaintTitle.title}</S.ComplaintName>
                     <S.ComplaintText>
-                      {complaintTitle.description || "Sem descricao complementar."}
+                      {complaintTitle.description || "Sem descrição complementar."}
                     </S.ComplaintText>
                   </S.ComplaintContent>
 
