@@ -82,8 +82,8 @@ const ChatBotInfo = () => {
         <S.Step>
           <S.Icon><One /></S.Icon>
           <p>
-            O usuário abre um ticket enviando uma mensagem pelo canal de sua
-            preferência (WhatsApp, site, e-mail ou redes sociais).
+            O usuário abre um ticket pela aba de atendimentos no site e
+            descreve a sua solicitação.
           </p>
         </S.Step>
 

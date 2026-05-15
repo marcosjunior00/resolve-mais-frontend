@@ -7,7 +7,7 @@ const Product = () => {
       <S.MainSection>
         <S.Title>Nosso produto</S.Title>
         <S.Description>
-          Nossa solução é ideal para empresas que priorizam excelência no atendimento ao cliente. Ao centralizar múltiplos canais de comunicação em uma única plataforma, o sistema oferece agilidade, eficiência e relatórios inteligentes que fortalecem a gestão e melhoram a experiência do consumidor.
+          Nossa solução é ideal para empresas que priorizam excelência no atendimento ao cliente. Com o atendimento concentrado no site, o sistema oferece agilidade, eficiência e relatórios inteligentes que fortalecem a gestão e melhoram a experiência do consumidor.
         </S.Description>
       </S.MainSection>
     </S.Container>

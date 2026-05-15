@@ -27,9 +27,9 @@ const EmployeeImmersion = () => {
             </S.Card>
 
             <S.Card $destaque>
-              <h3>Unificação de Canais</h3>
+              <h3>Painel Único</h3>
               <p>
-                Seja pelo site ou WhatsApp, todas as conversas chegam no mesmo painel,
+                Pela aba de atendimentos no site, todas as conversas ficam no mesmo painel,
                 simplificando o trabalho do funcionário e organizando a comunicação.
               </p>
             </S.Card>

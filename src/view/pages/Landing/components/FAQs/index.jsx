@@ -19,7 +19,7 @@ const FAQsSection = () => {
     },
     {
       question: "Como os clientes acessam o atendimento?",
-      answer: "Dos seguintes canais: WhatsApp ou Site, tudo integrado."
+      answer: "Pelo site, na aba de atendimentos."
     },
     {
       question: "Empresas conseguem medir a performance do SAC?",

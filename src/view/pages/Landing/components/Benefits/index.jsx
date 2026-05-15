@@ -28,7 +28,7 @@ const BenefitsSection = () => {
           <S.BenefitIcon><BoxIcon/></S.BenefitIcon>
           <S.BenefitName>Agilidade</S.BenefitName>
           <S.BenefitDescription>
-            Clientes têm respostas rápidas, sem burocracia, em múltiplos canais.
+            Clientes têm respostas rápidas, sem burocracia, pela aba de atendimentos no site.
           </S.BenefitDescription>
         </S.BenefitCard>
 
