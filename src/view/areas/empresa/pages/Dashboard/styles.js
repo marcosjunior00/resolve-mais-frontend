@@ -286,6 +286,13 @@ export const PanelActionButton = styled.button`
     border-color: rgba(13, 107, 60, 0.24);
     box-shadow: 0 12px 22px rgba(13, 107, 60, 0.12);
   }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+    transform: none;
+    box-shadow: none;
+  }
 `;
 
 export const PanelTitle = styled.h2`
@@ -298,6 +305,178 @@ export const PanelText = styled.p`
   margin: 6px 0 0;
   color: #577376;
   line-height: 1.55;
+`;
+
+export const AiGenerateButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(13, 107, 60, 0.16);
+  border-radius: 999px;
+  background: rgba(226, 250, 236, 0.9);
+  color: #0d6b3c;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(13, 107, 60, 0.24);
+    box-shadow: 0 12px 22px rgba(13, 107, 60, 0.12);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
+    transform: none;
+    box-shadow: none;
+  }
+`;
+
+export const AiGenerateIcon = styled.span`
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+`;
+
+export const AiSummaryCard = styled.article`
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 46, 47, 0.08);
+  background: linear-gradient(
+    145deg,
+    rgba(240, 251, 246, 0.96) 0%,
+    rgba(255, 255, 255, 0.98) 100%
+  );
+`;
+
+export const AiSummaryLabel = styled.span`
+  color: #0d6b3c;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+export const AiSummaryTitle = styled.h3`
+  margin: 8px 0 0;
+  color: #123134;
+  font-size: 1.3rem;
+  line-height: 1.3;
+`;
+
+export const AiSummaryText = styled.p`
+  margin: 10px 0 0;
+  color: #4f6c6f;
+  line-height: 1.65;
+`;
+
+export const AiSummaryMeta = styled.div`
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+
+  span {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(18, 49, 52, 0.06);
+    color: #547173;
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+`;
+
+export const AiRefreshNote = styled.p`
+  margin: 0;
+  color: #5b777a;
+  font-size: 0.88rem;
+  font-weight: 600;
+`;
+
+export const AiInsightGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+`;
+
+export const AiInsightCard = styled.article`
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(15, 46, 47, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+`;
+
+export const AiInsightHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+`;
+
+export const AiInsightTitle = styled.h3`
+  margin: 8px 0 0;
+  color: #123134;
+  font-size: 1.02rem;
+  line-height: 1.4;
+`;
+
+export const AiInsightText = styled.p`
+  margin: 0;
+  color: #4e6b6e;
+  line-height: 1.65;
+`;
+
+export const AiEvidenceList = styled.ul`
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 8px;
+  color: #4f6c6f;
+
+  li {
+    line-height: 1.55;
+  }
+`;
+
+export const AiActionBox = styled.div`
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(18, 49, 52, 0.05);
+
+  strong {
+    color: #123134;
+    font-size: 0.84rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  span {
+    color: #547174;
+    line-height: 1.55;
+  }
 `;
 
 export const VolumeChart = styled.div`

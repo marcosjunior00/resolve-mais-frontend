@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Sparkles } from "lucide-react";
 
 import Button from "../../../../../components/Button";
 import LoggedHeader from "../../../../../components/LoggedHeader";
@@ -96,6 +97,22 @@ const getResolutionSourceLabel = (value) => {
   if (value === "human") return "Resolvido pelo atendimento";
   return "Resolução registrada";
 };
+
+const getAiInsightToneLabel = (tone) => {
+  if (tone === "success") return "Força";
+  if (tone === "warning") return "Atenção";
+  if (tone === "danger") return "Risco";
+  return "Leitura";
+};
+
+const DEFAULT_AI_INSIGHTS_STATE = {
+  loading: false,
+  error: "",
+  data: null,
+  requested: false,
+};
+
+const IconAiInsights = () => <Sparkles size={18} strokeWidth={2.1} aria-hidden="true" />;
 
 const buildDailyVolume = (tickets) => {
   const countsByDay = new Map();
@@ -451,6 +468,9 @@ const CompanyDashboard = () => {
   const [avatarLoadErrors, setAvatarLoadErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [aiInsightsState, setAiInsightsState] = useState(
+    DEFAULT_AI_INSIGHTS_STATE
+  );
   const [isReviewsDialogOpen, setIsReviewsDialogOpen] = useState(false);
   const [ticketHistoryDialog, setTicketHistoryDialog] = useState({
     isOpen: false,
@@ -460,6 +480,43 @@ const CompanyDashboard = () => {
     detail: null,
     messages: [],
   });
+
+  const loadAiInsights = useCallback(async ({ preserveData = true } = {}) => {
+    setAiInsightsState((previous) => ({
+      loading: true,
+      error: "",
+      data: preserveData ? previous.data : null,
+      requested: true,
+    }));
+
+    try {
+      const response = await companyAdminService.getAiInsights();
+
+      if (response?.status >= 400) {
+        throw new Error(
+          response.message ||
+            "Não foi possível gerar a leitura da IA para os insights."
+        );
+      }
+
+      setAiInsightsState({
+        loading: false,
+        error: "",
+        data: response,
+        requested: true,
+      });
+    } catch (requestError) {
+      setAiInsightsState((previous) => ({
+        loading: false,
+        error:
+          requestError?.response?.data?.message ||
+          requestError?.message ||
+          "Não foi possível gerar a leitura da IA para os insights.",
+        data: preserveData ? previous.data : null,
+        requested: true,
+      }));
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -513,7 +570,7 @@ const CompanyDashboard = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loadAiInsights]);
 
   useEffect(() => {
     if (!isReviewsDialogOpen && !ticketHistoryDialog.isOpen) return undefined;
@@ -693,6 +750,10 @@ const CompanyDashboard = () => {
   const canOpenTicketInWorkspace =
     (ticketHistoryDialog.detail?.status || ticketHistoryDialog.ticket?.status) !==
     "fechado";
+  const aiInsights = aiInsightsState.data;
+  const aiInsightsGeneratedAt = aiInsights?.generatedAt
+    ? formatDateTime(aiInsights.generatedAt)
+    : null;
 
   const closeTicketHistoryDialog = () => {
     setTicketHistoryDialog({
@@ -892,6 +953,129 @@ const CompanyDashboard = () => {
                 </S.MetricHelper>
               </S.MetricCard>
             </S.MetricsGrid>
+
+            <S.Panel>
+              <S.PanelHeader>
+                <div>
+                  <S.PanelTitle>Leitura pontuada pela IA</S.PanelTitle>
+                  <S.PanelText>
+                    Uma camada adicional para destacar sinais operacionais, riscos e ações sugeridas com base nos dados mais recentes da empresa.
+                  </S.PanelText>
+                </div>
+
+                <S.DialogHeaderActions>
+                  <S.AiGenerateButton
+                    type="button"
+                    onClick={() => loadAiInsights({ preserveData: true })}
+                    disabled={aiInsightsState.loading}
+                  >
+                    <S.AiGenerateIcon>
+                      <IconAiInsights />
+                    </S.AiGenerateIcon>
+                    {aiInsightsState.loading
+                      ? "Gerando leitura..."
+                      : aiInsightsState.requested
+                      ? "Gerar nova leitura"
+                      : "Gerar leitura"}
+                  </S.AiGenerateButton>
+                </S.DialogHeaderActions>
+              </S.PanelHeader>
+
+              {!aiInsightsState.requested ? (
+                <S.EmptyInline>
+                  Gere a leitura quando quiser analisar os pontos mais relevantes da operação com apoio da IA.
+                </S.EmptyInline>
+              ) : null}
+
+              {aiInsightsState.loading && !aiInsights ? (
+                <S.EmptyInline>Gerando leitura da IA...</S.EmptyInline>
+              ) : null}
+
+              {aiInsightsState.requested &&
+              !aiInsightsState.loading &&
+              aiInsightsState.error &&
+              !aiInsights ? (
+                <S.EmptyInline>{aiInsightsState.error}</S.EmptyInline>
+              ) : null}
+
+              {aiInsights ? (
+                <>
+                  <S.AiSummaryCard>
+                    <div>
+                      <S.AiSummaryLabel>Resumo executivo</S.AiSummaryLabel>
+                      <S.AiSummaryTitle>{aiInsights.headline}</S.AiSummaryTitle>
+                      <S.AiSummaryText>{aiInsights.summary}</S.AiSummaryText>
+                    </div>
+
+                    <S.AiSummaryMeta>
+                      <span>
+                        {aiInsightsGeneratedAt
+                          ? `Atualizado em ${aiInsightsGeneratedAt}`
+                          : "Leitura recém-gerada"}
+                      </span>
+                      <span>
+                        {aiInsights?.sourceData?.ticketsAnalyzed || 0} ticket(s) analisado(s)
+                      </span>
+                      <span>
+                        {aiInsights?.sourceData?.employeesAnalyzed || 0} colaborador(es) considerado(s)
+                      </span>
+                    </S.AiSummaryMeta>
+                  </S.AiSummaryCard>
+
+                  {aiInsightsState.loading ? (
+                    <S.AiRefreshNote>Atualizando leitura da IA...</S.AiRefreshNote>
+                  ) : null}
+
+                  {!aiInsightsState.loading && aiInsightsState.error ? (
+                    <S.EmptyInline>{aiInsightsState.error}</S.EmptyInline>
+                  ) : null}
+
+                  {Array.isArray(aiInsights.insights) &&
+                  aiInsights.insights.length > 0 ? (
+                    <S.AiInsightGrid>
+                      {aiInsights.insights.map((insight) => (
+                        <S.AiInsightCard
+                          key={`${insight.title}-${insight.recommendedAction}`}
+                        >
+                          <S.AiInsightHeader>
+                            <div>
+                              <S.AiSummaryLabel>
+                                {getAiInsightToneLabel(insight.tone)}
+                              </S.AiSummaryLabel>
+                              <S.AiInsightTitle>{insight.title}</S.AiInsightTitle>
+                            </div>
+
+                            <S.StatusBadge $tone={insight.tone}>
+                              {getAiInsightToneLabel(insight.tone)}
+                            </S.StatusBadge>
+                          </S.AiInsightHeader>
+
+                          <S.AiInsightText>{insight.summary}</S.AiInsightText>
+
+                          {Array.isArray(insight.evidence) &&
+                          insight.evidence.length > 0 ? (
+                            <S.AiEvidenceList>
+                              {insight.evidence.map((evidence) => (
+                                <li key={evidence}>{evidence}</li>
+                              ))}
+                            </S.AiEvidenceList>
+                          ) : null}
+
+                          <S.AiActionBox>
+                            <strong>Ação sugerida</strong>
+                            <span>{insight.recommendedAction}</span>
+                          </S.AiActionBox>
+                        </S.AiInsightCard>
+                      ))}
+                    </S.AiInsightGrid>
+                  ) : (
+                    <S.EmptyInline>
+                      A IA não encontrou pontos relevantes o suficiente para destacar agora.
+                    </S.EmptyInline>
+                  )}
+                </>
+              ) : null}
+            </S.Panel>
 
             <S.InsightsGrid>
               <S.Panel>
