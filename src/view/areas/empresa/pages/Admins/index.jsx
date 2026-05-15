@@ -17,6 +17,38 @@ const DEFAULT_PAGINATION = {
   totalPages: 1,
 };
 const PAGE_SIZE_OPTIONS = [5, 10, 20];
+const MODAL_TYPES = {
+  CREATE_EMPLOYEE: "create-employee",
+  EDIT_EMPLOYEE: "edit-employee",
+  MANAGE_ADMINS: "manage-admins",
+};
+const ADMIN_MODAL_STEPS = {
+  CHOOSE: "choose",
+  ASSOCIATE: "associate",
+  CREATE: "create",
+};
+const EMPTY_ADMIN_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  cpf: "",
+  password: "",
+  jobTitle: "",
+};
+const EMPTY_EMPLOYEE_CREATE_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  cpf: "",
+  password: "",
+  jobTitle: "",
+};
+const EMPTY_EMPLOYEE_EDIT_FORM = {
+  name: "",
+  email: "",
+  phone: "",
+  jobTitle: "",
+};
 
 const buildFallbackPagination = (items, pageSize = DEFAULT_PAGINATION.pageSize) => ({
   page: 1,
@@ -49,8 +81,8 @@ const CompanyAdminsPage = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState("employees");
-  const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showEmployeeForm, setShowEmployeeForm] = useState(false);
+  const [activeModal, setActiveModal] = useState(null);
+  const [adminModalStep, setAdminModalStep] = useState(ADMIN_MODAL_STEPS.CHOOSE);
   const [associateEmail, setAssociateEmail] = useState("");
   const [editingEmployeeId, setEditingEmployeeId] = useState(null);
   const [adminSearch, setAdminSearch] = useState("");
@@ -67,35 +99,35 @@ const CompanyAdminsPage = () => {
   const [avatarLoadErrors, setAvatarLoadErrors] = useState({});
 
   const adminForm = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      cpf: "",
-      password: "",
-      jobTitle: "",
-    },
+    defaultValues: EMPTY_ADMIN_FORM,
   });
 
   const employeeCreateForm = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      cpf: "",
-      password: "",
-      jobTitle: "",
-    },
+    defaultValues: EMPTY_EMPLOYEE_CREATE_FORM,
   });
 
   const employeeEditForm = useForm({
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      jobTitle: "",
-    },
+    defaultValues: EMPTY_EMPLOYEE_EDIT_FORM,
   });
+
+  const resetEmployeeEditState = useCallback(() => {
+    setEditingEmployeeId(null);
+    employeeEditForm.reset(EMPTY_EMPLOYEE_EDIT_FORM);
+  }, [employeeEditForm]);
+
+  const resetModalState = useCallback(() => {
+    setActiveModal(null);
+    setAdminModalStep(ADMIN_MODAL_STEPS.CHOOSE);
+    setAssociateEmail("");
+    adminForm.reset(EMPTY_ADMIN_FORM);
+    employeeCreateForm.reset(EMPTY_EMPLOYEE_CREATE_FORM);
+    resetEmployeeEditState();
+  }, [adminForm, employeeCreateForm, resetEmployeeEditState]);
+
+  const closeActiveModal = useCallback(() => {
+    if (saving) return;
+    resetModalState();
+  }, [resetModalState, saving]);
 
   const loadAllData = useCallback(
     async ({ keepEditingEmployee = false } = {}) => {
@@ -145,9 +177,7 @@ const CompanyAdminsPage = () => {
           setEmployeePage(employeesResponse.pagination.page);
         }
 
-        if (!keepEditingEmployee) {
-          setEditingEmployeeId(null);
-        }
+        if (!keepEditingEmployee) resetEmployeeEditState();
       } catch (error) {
         showSnack({
           variant: "error",
@@ -167,6 +197,7 @@ const CompanyAdminsPage = () => {
       employeePage,
       employeePageSize,
       employeeSearchTerm,
+      resetEmployeeEditState,
       showSnack,
     ],
   );
@@ -193,11 +224,29 @@ const CompanyAdminsPage = () => {
     return () => window.clearTimeout(timeoutId);
   }, [employeeSearch]);
 
+  useEffect(() => {
+    if (!activeModal) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closeActiveModal();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeModal, closeActiveModal]);
+
   const createAdmin = async (formData) => {
     try {
       setSaving(true);
       await companyAdminService.add(formData);
-      adminForm.reset();
+      resetModalState();
       await loadAllData();
       showSnack({
         variant: "success",
@@ -226,7 +275,7 @@ const CompanyAdminsPage = () => {
     try {
       setSaving(true);
       await companyAdminService.add({ email: associateEmail.trim() });
-      setAssociateEmail("");
+      resetModalState();
       await loadAllData();
       showSnack({
         variant: "success",
@@ -285,7 +334,7 @@ const CompanyAdminsPage = () => {
     try {
       setSaving(true);
       await companyAdminService.addEmployee(formData);
-      employeeCreateForm.reset();
+      resetModalState();
       await loadAllData();
       showSnack({
         variant: "success",
@@ -309,16 +358,11 @@ const CompanyAdminsPage = () => {
       phone: employee.phone || "",
       jobTitle: employee.jobTitle || "",
     });
+    setActiveModal(MODAL_TYPES.EDIT_EMPLOYEE);
   };
 
   const cancelEditEmployee = () => {
-    setEditingEmployeeId(null);
-    employeeEditForm.reset({
-      name: "",
-      email: "",
-      phone: "",
-      jobTitle: "",
-    });
+    closeActiveModal();
   };
 
   const saveEmployeeEdition = async (formData) => {
@@ -327,7 +371,7 @@ const CompanyAdminsPage = () => {
     try {
       setSaving(true);
       await companyAdminService.updateEmployee(editingEmployeeId, formData);
-      setEditingEmployeeId(null);
+      resetModalState();
       await loadAllData();
       showSnack({
         variant: "success",
@@ -349,9 +393,7 @@ const CompanyAdminsPage = () => {
       setSaving(true);
       await companyAdminService.removeEmployee(employeeUserId);
       await loadAllData();
-      if (editingEmployeeId === employeeUserId) {
-        cancelEditEmployee();
-      }
+      if (editingEmployeeId === employeeUserId) resetModalState();
       showSnack({
         variant: "success",
         message: "Funcionário removido da empresa.",
@@ -372,6 +414,13 @@ const CompanyAdminsPage = () => {
 
   const adminTotal = adminPagination.total ?? admins.length;
   const employeeTotal = employeePagination.total ?? employees.length;
+  const isCreateEmployeeModalOpen = activeModal === MODAL_TYPES.CREATE_EMPLOYEE;
+  const isEditEmployeeModalOpen =
+    activeModal === MODAL_TYPES.EDIT_EMPLOYEE && Boolean(editingEmployee);
+  const isManageAdminsModalOpen = activeModal === MODAL_TYPES.MANAGE_ADMINS;
+  const isAdminChoiceStep = adminModalStep === ADMIN_MODAL_STEPS.CHOOSE;
+  const isAdminAssociateStep = adminModalStep === ADMIN_MODAL_STEPS.ASSOCIATE;
+  const isAdminCreateStep = adminModalStep === ADMIN_MODAL_STEPS.CREATE;
 
   const handleAvatarError = (avatarKey) => {
     setAvatarLoadErrors((previous) => ({
@@ -525,59 +574,15 @@ const CompanyAdminsPage = () => {
                 <Button
                   variant="primary"
                   type="button"
-                  onClick={() => setShowEmployeeForm((prev) => !prev)}
+                  onClick={() => {
+                    employeeCreateForm.reset(EMPTY_EMPLOYEE_CREATE_FORM);
+                    setActiveModal(MODAL_TYPES.CREATE_EMPLOYEE);
+                  }}
                   disabled={saving}
                 >
-                  {showEmployeeForm ? "Fechar cadastro" : "Criar funcionário"}
+                  Criar funcionário
                 </Button>
               </S.ActionBar>
-
-              {showEmployeeForm && (
-                <S.Panel>
-                  <S.Form onSubmit={employeeCreateForm.handleSubmit(createEmployee)}>
-                    <S.FormTitle>Criar novo funcionário</S.FormTitle>
-                    <Input
-                      label="Nome:"
-                      placeholder="Nome completo"
-                      type="text"
-                      register={employeeCreateForm.register("name")}
-                    />
-                    <Input
-                      label="E-mail:"
-                      placeholder="funcionario@empresa.com"
-                      type="text"
-                      register={employeeCreateForm.register("email")}
-                    />
-                    <PhoneInput
-                      label="Telefone:"
-                      placeholder="(11) 99999-9999"
-                      control={employeeCreateForm.control}
-                      name="phone"
-                    />
-                    <CpfInput
-                      label="CPF:"
-                      placeholder="000.000.000-00"
-                      control={employeeCreateForm.control}
-                      name="cpf"
-                    />
-                    <Input
-                      label="Cargo:"
-                      placeholder="Ex: Analista de Atendimento"
-                      type="text"
-                      register={employeeCreateForm.register("jobTitle")}
-                    />
-                    <Input
-                      label="Senha:"
-                      placeholder="Senha"
-                      type="password"
-                      register={employeeCreateForm.register("password")}
-                    />
-                    <Button variant="primary" type="submit" disabled={saving}>
-                      Criar funcionário
-                    </Button>
-                  </S.Form>
-                </S.Panel>
-              )}
 
               <S.InfosContainer>
                 {loading && <p>Carregando funcionários...</p>}
@@ -650,54 +655,6 @@ const CompanyAdminsPage = () => {
                     setEmployeePage(1);
                   },
                 })}
-
-              {editingEmployee && (
-                <S.Panel>
-                  <S.Form onSubmit={employeeEditForm.handleSubmit(saveEmployeeEdition)}>
-                    <S.FormTitle>Editar funcionário</S.FormTitle>
-                    <Input
-                      label="Nome:"
-                      placeholder="Nome completo"
-                      type="text"
-                      register={employeeEditForm.register("name")}
-                    />
-                    <Input
-                      label="E-mail:"
-                      placeholder="funcionario@empresa.com"
-                      type="text"
-                      register={employeeEditForm.register("email")}
-                    />
-                    <PhoneInput
-                      label="Telefone:"
-                      placeholder="(11) 99999-9999"
-                      control={employeeEditForm.control}
-                      name="phone"
-                    />
-                    <Input
-                      label="Cargo:"
-                      placeholder="Ex: Analista de Atendimento"
-                      type="text"
-                      register={employeeEditForm.register("jobTitle")}
-                    />
-                    <S.ReadOnlyInfo>
-                      <strong>CPF bloqueado:</strong> {editingEmployee.cpf || "-"}
-                    </S.ReadOnlyInfo>
-                    <S.RowActions>
-                      <Button variant="primary" type="submit" disabled={saving}>
-                        Salvar funcionário
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        type="button"
-                        disabled={saving}
-                        onClick={cancelEditEmployee}
-                      >
-                        Cancelar
-                      </Button>
-                    </S.RowActions>
-                  </S.Form>
-                </S.Panel>
-              )}
             </S.TabContent>
           )}
 
@@ -734,92 +691,17 @@ const CompanyAdminsPage = () => {
                 <Button
                   variant="primary"
                   type="button"
-                  onClick={() => setShowAdminPanel((prev) => !prev)}
+                  onClick={() => {
+                    setAssociateEmail("");
+                    adminForm.reset(EMPTY_ADMIN_FORM);
+                    setAdminModalStep(ADMIN_MODAL_STEPS.CHOOSE);
+                    setActiveModal(MODAL_TYPES.MANAGE_ADMINS);
+                  }}
                   disabled={saving}
                 >
-                  {showAdminPanel ? "Fechar painel" : "Associar administrador"}
+                  Associar administrador
                 </Button>
               </S.ActionBar>
-
-              {showAdminPanel && (
-                <S.Panel>
-                  <S.AdminPanelLayout>
-                    <S.AssociateStrip>
-                      <S.AssociateTitle>Associar administrador existente</S.AssociateTitle>
-                      <S.AssociateControls>
-                        <S.AssociateEmailGroup>
-                          <S.Label>E-mail do administrador:</S.Label>
-                          <S.AssociateEmailInput
-                            value={associateEmail}
-                            onChange={(event) => setAssociateEmail(event.target.value)}
-                            placeholder="usuario@empresa.com"
-                          />
-                        </S.AssociateEmailGroup>
-                        <S.AssociateActions>
-                          <Button
-                            variant="primary"
-                            type="button"
-                            onClick={associateExistingAdmin}
-                            disabled={saving}
-                            full
-                          >
-                            Associar
-                          </Button>
-                        </S.AssociateActions>
-                      </S.AssociateControls>
-                    </S.AssociateStrip>
-
-                    <S.PanelDivider />
-
-                    <S.Form onSubmit={adminForm.handleSubmit(createAdmin)}>
-                      <S.FormTitle>Criar novo administrador</S.FormTitle>
-                      <S.AdminFormGrid>
-                        <Input
-                          label="Nome:"
-                          placeholder="Nome completo"
-                          type="text"
-                          register={adminForm.register("name")}
-                        />
-                        <Input
-                          label="E-mail:"
-                          placeholder="usuario@empresa.com"
-                          type="text"
-                          register={adminForm.register("email")}
-                        />
-                        <PhoneInput
-                          label="Telefone:"
-                          placeholder="(11) 99999-9999"
-                          control={adminForm.control}
-                          name="phone"
-                        />
-                        <CpfInput
-                          label="CPF:"
-                          placeholder="000.000.000-00"
-                          control={adminForm.control}
-                          name="cpf"
-                        />
-                        <Input
-                          label="Cargo:"
-                          placeholder="Ex: Coordenador de Suporte"
-                          type="text"
-                          register={adminForm.register("jobTitle")}
-                        />
-                        <Input
-                          label="Senha:"
-                          placeholder="Senha"
-                          type="password"
-                          register={adminForm.register("password")}
-                        />
-                      </S.AdminFormGrid>
-                      <S.FormActions>
-                        <Button variant="primary" type="submit" disabled={saving} full>
-                          Criar e associar admin
-                        </Button>
-                      </S.FormActions>
-                    </S.Form>
-                  </S.AdminPanelLayout>
-                </S.Panel>
-              )}
 
               <S.AdminsGroup>
                 {loading && <p>Carregando administradores...</p>}
@@ -878,6 +760,300 @@ const CompanyAdminsPage = () => {
           )}
         </S.Card>
       </S.Container>
+
+      {isCreateEmployeeModalOpen ? (
+        <S.ModalOverlay onClick={closeActiveModal}>
+          <S.ModalDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-employee-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.ModalHeader>
+              <div>
+                <S.ModalTitle id="create-employee-modal-title">
+                  Criar novo funcionário
+                </S.ModalTitle>
+                <S.ModalText>
+                  Cadastre um novo colaborador sem sair da aba de funcionários.
+                </S.ModalText>
+              </div>
+              <Button variant="secondary" type="button" onClick={closeActiveModal} disabled={saving}>
+                Fechar
+              </Button>
+            </S.ModalHeader>
+
+            <S.ModalBody>
+              <S.Form onSubmit={employeeCreateForm.handleSubmit(createEmployee)}>
+                <Input
+                  label="Nome:"
+                  placeholder="Nome completo"
+                  type="text"
+                  register={employeeCreateForm.register("name")}
+                />
+                <Input
+                  label="E-mail:"
+                  placeholder="funcionario@empresa.com"
+                  type="text"
+                  register={employeeCreateForm.register("email")}
+                />
+                <PhoneInput
+                  label="Telefone:"
+                  placeholder="(11) 99999-9999"
+                  control={employeeCreateForm.control}
+                  name="phone"
+                />
+                <CpfInput
+                  label="CPF:"
+                  placeholder="000.000.000-00"
+                  control={employeeCreateForm.control}
+                  name="cpf"
+                />
+                <Input
+                  label="Cargo:"
+                  placeholder="Ex: Analista de Atendimento"
+                  type="text"
+                  register={employeeCreateForm.register("jobTitle")}
+                />
+                <Input
+                  label="Senha:"
+                  placeholder="Senha"
+                  type="password"
+                  register={employeeCreateForm.register("password")}
+                />
+                <S.ModalActions>
+                  <Button variant="secondary" type="button" onClick={closeActiveModal} disabled={saving}>
+                    Cancelar
+                  </Button>
+                  <Button variant="primary" type="submit" disabled={saving}>
+                    Criar funcionário
+                  </Button>
+                </S.ModalActions>
+              </S.Form>
+            </S.ModalBody>
+          </S.ModalDialog>
+        </S.ModalOverlay>
+      ) : null}
+
+      {isEditEmployeeModalOpen ? (
+        <S.ModalOverlay onClick={closeActiveModal}>
+          <S.ModalDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-employee-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.ModalHeader>
+              <div>
+                <S.ModalTitle id="edit-employee-modal-title">
+                  Editar funcionário
+                </S.ModalTitle>
+                <S.ModalText>
+                  Atualize os dados do colaborador sem mudar de contexto.
+                </S.ModalText>
+              </div>
+              <Button variant="secondary" type="button" onClick={closeActiveModal} disabled={saving}>
+                Fechar
+              </Button>
+            </S.ModalHeader>
+
+            <S.ModalBody>
+              <S.Form onSubmit={employeeEditForm.handleSubmit(saveEmployeeEdition)}>
+                <Input
+                  label="Nome:"
+                  placeholder="Nome completo"
+                  type="text"
+                  register={employeeEditForm.register("name")}
+                />
+                <Input
+                  label="E-mail:"
+                  placeholder="funcionario@empresa.com"
+                  type="text"
+                  register={employeeEditForm.register("email")}
+                />
+                <PhoneInput
+                  label="Telefone:"
+                  placeholder="(11) 99999-9999"
+                  control={employeeEditForm.control}
+                  name="phone"
+                />
+                <Input
+                  label="Cargo:"
+                  placeholder="Ex: Analista de Atendimento"
+                  type="text"
+                  register={employeeEditForm.register("jobTitle")}
+                />
+                <S.ReadOnlyInfo>
+                  <strong>CPF bloqueado:</strong> {editingEmployee?.cpf || "-"}
+                </S.ReadOnlyInfo>
+                <S.ModalActions>
+                  <Button variant="secondary" type="button" onClick={cancelEditEmployee} disabled={saving}>
+                    Cancelar
+                  </Button>
+                  <Button variant="primary" type="submit" disabled={saving}>
+                    Salvar funcionário
+                  </Button>
+                </S.ModalActions>
+              </S.Form>
+            </S.ModalBody>
+          </S.ModalDialog>
+        </S.ModalOverlay>
+      ) : null}
+
+      {isManageAdminsModalOpen ? (
+        <S.ModalOverlay onClick={closeActiveModal}>
+          <S.ModalDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manage-admins-modal-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.ModalHeader>
+              <div>
+                <S.ModalTitle id="manage-admins-modal-title">
+                  {isAdminChoiceStep ? "Associar administrador" : "Cadastro de administrador"}
+                </S.ModalTitle>
+                <S.ModalText>
+                  {isAdminChoiceStep
+                    ? "Você deseja usar um usuário já existente ou cadastrar um novo administrador?"
+                    : isAdminAssociateStep
+                      ? "Informe o e-mail de um usuário já existente para vinculá-lo como administrador."
+                      : "Preencha os dados para cadastrar e associar um novo administrador à empresa."}
+                </S.ModalText>
+              </div>
+              <Button variant="secondary" type="button" onClick={closeActiveModal} disabled={saving}>
+                Fechar
+              </Button>
+            </S.ModalHeader>
+
+            <S.ModalBody>
+              {isAdminChoiceStep ? (
+                <S.StepChooser>
+                  <S.StepOptionCard
+                    type="button"
+                    onClick={() => setAdminModalStep(ADMIN_MODAL_STEPS.ASSOCIATE)}
+                  >
+                    <S.StepOptionEyebrow>Etapa 1 de 2</S.StepOptionEyebrow>
+                    <S.StepOptionTitle>Usar usuário já existente</S.StepOptionTitle>
+                    <S.StepOptionText>
+                      Se o funcionário ou usuário já possui cadastro, basta informar o e-mail para associá-lo como administrador.
+                    </S.StepOptionText>
+                  </S.StepOptionCard>
+
+                  <S.StepOptionCard
+                    type="button"
+                    onClick={() => setAdminModalStep(ADMIN_MODAL_STEPS.CREATE)}
+                  >
+                    <S.StepOptionEyebrow>Etapa 1 de 2</S.StepOptionEyebrow>
+                    <S.StepOptionTitle>Cadastrar novo usuário</S.StepOptionTitle>
+                    <S.StepOptionText>
+                      Crie um novo acesso com nome, e-mail, CPF, telefone, cargo e senha para o novo administrador.
+                    </S.StepOptionText>
+                  </S.StepOptionCard>
+                </S.StepChooser>
+              ) : null}
+
+              {isAdminAssociateStep ? (
+                <S.Panel>
+                  <S.AssociateStrip>
+                    <S.StepBadge>Etapa 2 de 2</S.StepBadge>
+                    <S.AssociateTitle>Associar administrador existente</S.AssociateTitle>
+                    <S.AssociateControls>
+                      <S.AssociateEmailGroup>
+                        <S.Label>E-mail do administrador:</S.Label>
+                        <S.AssociateEmailInput
+                          value={associateEmail}
+                          onChange={(event) => setAssociateEmail(event.target.value)}
+                          placeholder="usuario@empresa.com"
+                        />
+                      </S.AssociateEmailGroup>
+                      <S.AssociateActions>
+                        <Button
+                          variant="primary"
+                          type="button"
+                          onClick={associateExistingAdmin}
+                          disabled={saving}
+                          full
+                        >
+                          Associar
+                        </Button>
+                      </S.AssociateActions>
+                    </S.AssociateControls>
+                    <S.ModalActions>
+                      <Button
+                        variant="secondary"
+                        type="button"
+                        onClick={() => setAdminModalStep(ADMIN_MODAL_STEPS.CHOOSE)}
+                        disabled={saving}
+                      >
+                        Voltar
+                      </Button>
+                    </S.ModalActions>
+                  </S.AssociateStrip>
+                </S.Panel>
+              ) : null}
+
+              {isAdminCreateStep ? (
+                <S.Panel>
+                  <S.Form onSubmit={adminForm.handleSubmit(createAdmin)}>
+                    <S.StepBadge>Etapa 2 de 2</S.StepBadge>
+                    <S.FormTitle>Criar novo administrador</S.FormTitle>
+                    <Input
+                      label="Nome:"
+                      placeholder="Nome completo"
+                      type="text"
+                      register={adminForm.register("name")}
+                    />
+                    <Input
+                      label="E-mail:"
+                      placeholder="usuario@empresa.com"
+                      type="text"
+                      register={adminForm.register("email")}
+                    />
+                    <PhoneInput
+                      label="Telefone:"
+                      placeholder="(11) 99999-9999"
+                      control={adminForm.control}
+                      name="phone"
+                    />
+                    <CpfInput
+                      label="CPF:"
+                      placeholder="000.000.000-00"
+                      control={adminForm.control}
+                      name="cpf"
+                    />
+                    <Input
+                      label="Cargo:"
+                      placeholder="Ex: Coordenador de Suporte"
+                      type="text"
+                      register={adminForm.register("jobTitle")}
+                    />
+                    <Input
+                      label="Senha:"
+                      placeholder="Senha"
+                      type="password"
+                      register={adminForm.register("password")}
+                    />
+                    <S.ModalActions>
+                      <Button
+                        variant="secondary"
+                        type="button"
+                        onClick={() => setAdminModalStep(ADMIN_MODAL_STEPS.CHOOSE)}
+                        disabled={saving}
+                      >
+                        Voltar
+                      </Button>
+                      <Button variant="primary" type="submit" disabled={saving}>
+                        Criar e associar admin
+                      </Button>
+                    </S.ModalActions>
+                  </S.Form>
+                </S.Panel>
+              ) : null}
+            </S.ModalBody>
+          </S.ModalDialog>
+        </S.ModalOverlay>
+      ) : null}
     </S.Page>
   );
 };

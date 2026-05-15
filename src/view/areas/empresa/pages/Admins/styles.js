@@ -259,6 +259,127 @@ export const InfoRow = styled.div`
     font-size: 14px;
 `;
 
+export const ModalOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 1400;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(10, 26, 28, .42);
+    backdrop-filter: blur(8px);
+`;
+
+export const ModalDialog = styled.div`
+    width: min(${({ $wide }) => ($wide ? "920px" : "640px")}, 100%);
+    max-height: min(88vh, 920px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    border-radius: 24px;
+    border: 1px solid rgba(15, 46, 47, .12);
+    background: rgba(255, 255, 255, .98);
+    box-shadow: 0 24px 52px rgba(15, 46, 47, .24);
+    overflow: hidden;
+`;
+
+export const ModalHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px;
+    border-bottom: 1px solid rgba(15, 46, 47, .08);
+    flex-wrap: wrap;
+`;
+
+export const ModalTitle = styled.h2`
+    margin: 0;
+    color: #123134;
+    font-size: 1.35rem;
+`;
+
+export const ModalText = styled.p`
+    margin: 6px 0 0;
+    color: #5b7678;
+    line-height: 1.55;
+    max-width: 620px;
+`;
+
+export const ModalBody = styled.div`
+    overflow-y: auto;
+    display: grid;
+    gap: 18px;
+    padding: 24px;
+`;
+
+export const ModalActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+export const StepChooser = styled.div`
+    display: grid;
+    gap: 14px;
+
+    @media (min-width: 720px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+`;
+
+export const StepOptionCard = styled.button`
+    text-align: left;
+    display: grid;
+    gap: 10px;
+    padding: 20px;
+    border-radius: 18px;
+    border: 1px solid rgba(15, 46, 47, .14);
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf9 100%);
+    color: #123134;
+    cursor: pointer;
+    transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+
+    &:hover {
+        transform: translateY(-2px);
+        border-color: rgba(17, 117, 78, .28);
+        box-shadow: 0 16px 30px rgba(15, 46, 47, .08);
+    }
+`;
+
+export const StepOptionEyebrow = styled.span`
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: #11754e;
+`;
+
+export const StepOptionTitle = styled.strong`
+    font-size: 18px;
+    color: #123134;
+`;
+
+export const StepOptionText = styled.p`
+    margin: 0;
+    color: #5b7678;
+    line-height: 1.6;
+`;
+
+export const StepBadge = styled.span`
+    display: inline-flex;
+    width: fit-content;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #e7f8ef;
+    color: #11754e;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+`;
+
 export const SectionTitle = styled.h2`
     margin-top: 0;
     margin-bottom: 10px;
@@ -268,6 +389,11 @@ export const SectionTitle = styled.h2`
 export const AdminPanelLayout = styled.div`
     display: grid;
     gap: 16px;
+
+    @media (min-width: 920px) {
+        grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+        align-items: start;
+    }
 `;
 
 export const AssociateStrip = styled.div`
