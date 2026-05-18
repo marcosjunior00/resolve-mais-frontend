@@ -389,7 +389,7 @@ export const TicketList = styled.div`
   gap: 10px;
   max-height: 72vh;
   overflow-y: auto;
-  padding: 2px
+  padding: 2px;
 `;
 
 export const TicketButton = styled.button`
@@ -473,6 +473,86 @@ export const TicketAssigneeText = styled.div`
     color: #475569;
     font-weight: 700;
   }
+`;
+
+export const TicketPaginationBar = styled.div`
+  display: grid;
+  gap: 10px;
+  padding-top: 6px;
+`;
+
+export const TicketPaginationSummary = styled.span`
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.4;
+`;
+
+export const TicketPaginationControls = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const TicketPageSizeLabel = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 600;
+`;
+
+export const TicketPageSizeSelect = styled.select`
+  min-height: 34px;
+  border: 1px solid #d4dce2;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+
+  &:focus {
+    border-color: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.14);
+  }
+`;
+
+export const TicketPaginationActions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+export const TicketPaginationButton = styled.button`
+  min-height: 34px;
+  border: 1px solid #d4dce2;
+  border-radius: 10px;
+  padding: 7px 10px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 700;
+  transition: 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #10b981;
+    color: #047857;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+`;
+
+export const TicketPageIndicator = styled.span`
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
 `;
 
 export const StatusPill = styled.span`

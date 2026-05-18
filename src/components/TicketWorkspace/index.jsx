@@ -90,6 +90,9 @@ const DEFAULT_TICKET_FILTERS = {
   dateFrom: "",
   dateTo: "",
 };
+const DEFAULT_TICKET_PAGE = 1;
+const DEFAULT_TICKET_PAGE_SIZE = 5;
+const TICKET_PAGE_SIZE_OPTIONS = [5, 10, 20];
 
 const normalizeFilterText = (value = "") =>
   String(value || "")
@@ -245,6 +248,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [ticketSearch, setTicketSearch] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [ticketFilters, setTicketFilters] = useState(DEFAULT_TICKET_FILTERS);
+  const [ticketPage, setTicketPage] = useState(DEFAULT_TICKET_PAGE);
+  const [ticketPageSize, setTicketPageSize] = useState(DEFAULT_TICKET_PAGE_SIZE);
   const [composerText, setComposerText] = useState("");
   const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
@@ -314,6 +319,32 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
           : rightTime - leftTime;
       });
   }, [ticketFilters, ticketSearch, workspace.tickets]);
+
+  const ticketPagination = useMemo(() => {
+    const total = filteredTickets.length;
+    const totalPages = Math.max(1, Math.ceil(total / ticketPageSize));
+    const page = Math.min(ticketPage, totalPages);
+    const startIndex = (page - 1) * ticketPageSize;
+    const endIndex = startIndex + ticketPageSize;
+
+    return {
+      page,
+      pageSize: ticketPageSize,
+      total,
+      totalPages,
+      startIndex,
+      endIndex,
+    };
+  }, [filteredTickets.length, ticketPage, ticketPageSize]);
+
+  const paginatedTickets = useMemo(
+    () =>
+      filteredTickets.slice(
+        ticketPagination.startIndex,
+        ticketPagination.endIndex
+      ),
+    [filteredTickets, ticketPagination.endIndex, ticketPagination.startIndex]
+  );
 
   const composerDisabled = useMemo(() => {
     if (!selectedTicket) return true;
@@ -542,6 +573,16 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   useEffect(() => {
     setMessageAvatarErrors({});
   }, [selectedTicketId]);
+
+  useEffect(() => {
+    setTicketPage(DEFAULT_TICKET_PAGE);
+  }, [ticketFilters, ticketSearch]);
+
+  useEffect(() => {
+    if (ticketPage <= ticketPagination.totalPages) return;
+
+    setTicketPage(ticketPagination.totalPages);
+  }, [ticketPage, ticketPagination.totalPages]);
 
   useEffect(() => {
     if (!isCustomerMode || !selectedTicket?.evaluation?.pending) return;
@@ -1222,6 +1263,63 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     );
   };
 
+  const renderTicketPagination = () => {
+    const { page, pageSize, total, totalPages } = ticketPagination;
+    const startItem = total === 0 ? 0 : (page - 1) * pageSize + 1;
+    const endItem = Math.min(total, page * pageSize);
+
+    return (
+      <S.TicketPaginationBar>
+        <S.TicketPaginationSummary>
+          {total === 0
+            ? "Nenhum resultado"
+            : `${startItem}-${endItem} de ${total} ticket(s)`}
+        </S.TicketPaginationSummary>
+
+        <S.TicketPaginationControls>
+          <S.TicketPageSizeLabel>
+            Exibir
+            <S.TicketPageSizeSelect
+              value={pageSize}
+              onChange={(event) => {
+                setTicketPageSize(Number(event.target.value));
+                setTicketPage(DEFAULT_TICKET_PAGE);
+              }}
+            >
+              {TICKET_PAGE_SIZE_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </S.TicketPageSizeSelect>
+          </S.TicketPageSizeLabel>
+
+          <S.TicketPaginationActions>
+            <S.TicketPaginationButton
+              type="button"
+              disabled={page <= DEFAULT_TICKET_PAGE || workspaceLoading}
+              onClick={() => setTicketPage((currentPage) => currentPage - 1)}
+            >
+              Anterior
+            </S.TicketPaginationButton>
+
+            <S.TicketPageIndicator>
+              Página {page} de {totalPages}
+            </S.TicketPageIndicator>
+
+            <S.TicketPaginationButton
+              type="button"
+              disabled={page >= totalPages || workspaceLoading}
+              onClick={() => setTicketPage((currentPage) => currentPage + 1)}
+            >
+              Próxima
+            </S.TicketPaginationButton>
+          </S.TicketPaginationActions>
+        </S.TicketPaginationControls>
+      </S.TicketPaginationBar>
+    );
+  };
+
   return (
     <S.Page>
       <LoggedHeader />
@@ -1417,7 +1515,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
               ) : null}
 
               {!workspaceLoading &&
-                filteredTickets.map((ticket) => (
+                paginatedTickets.map((ticket) => (
                   <S.TicketButton
                     key={ticket.id}
                     type="button"
@@ -1438,6 +1536,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                   </S.TicketButton>
                 ))}
             </S.TicketList>
+
+            {!workspaceLoading ? renderTicketPagination() : null}
           </S.Sidebar>
 
           <S.Main>
