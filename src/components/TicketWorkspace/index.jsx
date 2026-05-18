@@ -18,6 +18,7 @@ import {
   getMessageUiMeta,
   getTicketStatusLabel,
   getTicketStatusTone,
+  getUserInitials,
   TICKET_SENDER_TYPE,
   TICKET_STATUS,
 } from "../../utils/ticket";
@@ -114,6 +115,14 @@ const getTicketDateValue = (ticket, field) => {
   const parsedDate = new Date(value);
 
   return Number.isNaN(parsedDate.getTime()) ? 0 : parsedDate.getTime();
+};
+
+const getPersonAvatarUrl = (person) => {
+  const avatarUrl = person?.avatarUrl || person?.avatar_url || "";
+
+  if (typeof avatarUrl !== "string") return "";
+
+  return avatarUrl.trim();
 };
 
 const getTicketSearchValues = (ticket, field) => {
@@ -246,6 +255,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [botStreaming, setBotStreaming] = useState(false);
   const [messageAvatarErrors, setMessageAvatarErrors] = useState({});
+  const [ticketAvatarErrors, setTicketAvatarErrors] = useState({});
   const [evaluationDialog, setEvaluationDialog] = useState({ isOpen: false, mode: null });
   const [evaluationRating, setEvaluationRating] = useState(0);
   const [evaluationComment, setEvaluationComment] = useState("");
@@ -721,6 +731,17 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     );
   };
 
+  const handleTicketAvatarError = (avatarKey) => {
+    setTicketAvatarErrors((previous) =>
+      previous[avatarKey]
+        ? previous
+        : {
+            ...previous,
+            [avatarKey]: true,
+          }
+    );
+  };
+
   const closeEvaluationDialog = () => {
     if (actionLoading) return;
 
@@ -1164,6 +1185,43 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     );
   };
 
+  const renderAssignedEmployeeSummary = (ticket) => {
+    const assignedEmployee = ticket?.assignedEmployee;
+
+    if (!assignedEmployee?.name) return null;
+
+    const avatarUrl = getPersonAvatarUrl(assignedEmployee);
+    const avatarKey = [
+      "ticket-assignee",
+      ticket?.id || "ticket",
+      assignedEmployee.id || assignedEmployee.email || assignedEmployee.name,
+      avatarUrl || "no-avatar",
+    ].join("-");
+    const shouldShowAvatarImage =
+      Boolean(avatarUrl) && !ticketAvatarErrors[avatarKey];
+
+    return (
+      <S.TicketAssigneeRow>
+        <S.TicketAssigneeAvatar aria-hidden="true">
+          {shouldShowAvatarImage ? (
+            <S.TicketAssigneeAvatarImage
+              src={avatarUrl}
+              alt=""
+              onError={() => handleTicketAvatarError(avatarKey)}
+            />
+          ) : (
+            getUserInitials(assignedEmployee.name, "RP")
+          )}
+        </S.TicketAssigneeAvatar>
+
+        <S.TicketAssigneeText>
+          <span>Responsável:</span>
+          <strong>{assignedEmployee.name}</strong>
+        </S.TicketAssigneeText>
+      </S.TicketAssigneeRow>
+    );
+  };
+
   return (
     <S.Page>
       <LoggedHeader />
@@ -1376,11 +1434,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                     <S.TicketSmall>
                       {ticket.complaintTitle?.title || "Sem assunto"}
                     </S.TicketSmall>
-                    {ticket.assignedEmployee?.name ? (
-                      <S.TicketSmall>
-                        Responsável: {ticket.assignedEmployee.name}
-                      </S.TicketSmall>
-                    ) : null}
+                    {renderAssignedEmployeeSummary(ticket)}
                   </S.TicketButton>
                 ))}
             </S.TicketList>

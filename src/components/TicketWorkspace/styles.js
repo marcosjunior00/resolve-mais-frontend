@@ -428,6 +428,53 @@ export const TicketSmall = styled.span`
   line-height: 1.45;
 `;
 
+export const TicketAssigneeRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  min-width: 0;
+`;
+
+export const TicketAssigneeAvatar = styled.div`
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  color: #047857;
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+`;
+
+export const TicketAssigneeAvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+`;
+
+export const TicketAssigneeText = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+
+  strong {
+    color: #475569;
+    font-weight: 700;
+  }
+`;
+
 export const StatusPill = styled.span`
   display: inline-flex;
   align-items: center;
