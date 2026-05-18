@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { createElement, useCallback, useEffect, useMemo, useState } from "react";
 import { Sparkles } from "lucide-react";
 
 import Button from "../../../../../components/Button";
@@ -111,8 +111,95 @@ const DEFAULT_AI_INSIGHTS_STATE = {
   data: null,
   requested: false,
 };
+const AI_REVEAL_STEP_MS = 36;
+const AI_REVEAL_SUMMARY_DELAY_MS = 140;
+const AI_REVEAL_INSIGHT_DELAY_MS = 320;
+const AI_REVEAL_EVIDENCE_DELAY_MS = 140;
 
 const IconAiInsights = () => <Sparkles size={18} strokeWidth={2.1} aria-hidden="true" />;
+
+const splitTextForReveal = (value = "") =>
+  String(value || "")
+    .split(/(\s+)/)
+    .filter((token) => token.length > 0);
+
+const buildAiInsightsAnimationKey = (aiInsights) => {
+  if (!aiInsights) return "ai-insights-empty";
+
+  return [
+    aiInsights.generatedAt || "",
+    aiInsights.headline || "",
+    aiInsights.summary || "",
+    ...(Array.isArray(aiInsights.insights)
+      ? aiInsights.insights.flatMap((insight) => [
+          insight.title || "",
+          insight.summary || "",
+          insight.recommendedAction || "",
+          ...(Array.isArray(insight.evidence) ? insight.evidence : []),
+        ])
+      : []),
+  ].join("::");
+};
+
+const ProgressiveText = ({
+  component: componentTag = "span",
+  text = "",
+  animationKey = "",
+  enabled = false,
+  delayMs = 0,
+  stepMs = AI_REVEAL_STEP_MS,
+  ...rest
+}) => {
+  const tokens = useMemo(() => splitTextForReveal(text), [text]);
+  const [visibleTokenCount, setVisibleTokenCount] = useState(
+    enabled ? 0 : tokens.length
+  );
+  const isAnimating = enabled && visibleTokenCount < tokens.length;
+
+  useEffect(() => {
+    if (!enabled || tokens.length === 0) {
+      setVisibleTokenCount(tokens.length);
+      return undefined;
+    }
+
+    let intervalId;
+    let timeoutId;
+
+    setVisibleTokenCount(0);
+
+    timeoutId = window.setTimeout(() => {
+      intervalId = window.setInterval(() => {
+        setVisibleTokenCount((previousCount) => {
+          const nextCount = Math.min(tokens.length, previousCount + 1);
+
+          if (nextCount >= tokens.length && intervalId) {
+            window.clearInterval(intervalId);
+            intervalId = undefined;
+          }
+
+          return nextCount;
+        });
+      }, stepMs);
+    }, delayMs);
+
+    return () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [animationKey, delayMs, enabled, stepMs, tokens.length]);
+
+  return createElement(
+    componentTag,
+    rest,
+    tokens.slice(0, visibleTokenCount).join(""),
+    isAnimating
+      ? createElement(S.AiTypingCursor, {
+          "aria-hidden": true,
+          key: "typing-cursor",
+        })
+      : null
+  );
+};
 
 const buildDailyVolume = (tickets) => {
   const countsByDay = new Map();
@@ -751,6 +838,7 @@ const CompanyDashboard = () => {
     (ticketHistoryDialog.detail?.status || ticketHistoryDialog.ticket?.status) !==
     "fechado";
   const aiInsights = aiInsightsState.data;
+  const aiInsightsAnimationKey = buildAiInsightsAnimationKey(aiInsights);
   const aiInsightsGeneratedAt = aiInsights?.generatedAt
     ? formatDateTime(aiInsights.generatedAt)
     : null;
@@ -1003,8 +1091,20 @@ const CompanyDashboard = () => {
                   <S.AiSummaryCard>
                     <div>
                       <S.AiSummaryLabel>Resumo executivo</S.AiSummaryLabel>
-                      <S.AiSummaryTitle>{aiInsights.headline}</S.AiSummaryTitle>
-                      <S.AiSummaryText>{aiInsights.summary}</S.AiSummaryText>
+                      <ProgressiveText
+                        component={S.AiSummaryTitle}
+                        text={aiInsights.headline}
+                        animationKey={`${aiInsightsAnimationKey}-headline`}
+                        enabled
+                        delayMs={AI_REVEAL_SUMMARY_DELAY_MS}
+                      />
+                      <ProgressiveText
+                        component={S.AiSummaryText}
+                        text={aiInsights.summary}
+                        animationKey={`${aiInsightsAnimationKey}-summary`}
+                        enabled
+                        delayMs={AI_REVEAL_SUMMARY_DELAY_MS + 180}
+                      />
                     </div>
 
                     <S.AiSummaryMeta>
@@ -1033,7 +1133,16 @@ const CompanyDashboard = () => {
                   {Array.isArray(aiInsights.insights) &&
                   aiInsights.insights.length > 0 ? (
                     <S.AiInsightGrid>
-                      {aiInsights.insights.map((insight) => (
+                      {aiInsights.insights.map((insight, insightIndex) => {
+                        const insightEvidence = Array.isArray(insight.evidence)
+                          ? insight.evidence
+                          : [];
+                        const insightDelay =
+                          AI_REVEAL_SUMMARY_DELAY_MS +
+                          360 +
+                          insightIndex * AI_REVEAL_INSIGHT_DELAY_MS;
+
+                        return (
                         <S.AiInsightCard
                           key={`${insight.title}-${insight.recommendedAction}`}
                         >
@@ -1042,7 +1151,13 @@ const CompanyDashboard = () => {
                               <S.AiSummaryLabel>
                                 {getAiInsightToneLabel(insight.tone)}
                               </S.AiSummaryLabel>
-                              <S.AiInsightTitle>{insight.title}</S.AiInsightTitle>
+                              <ProgressiveText
+                                component={S.AiInsightTitle}
+                                text={insight.title}
+                                animationKey={`${aiInsightsAnimationKey}-title-${insightIndex}`}
+                                enabled
+                                delayMs={insightDelay}
+                              />
                             </div>
 
                             <S.StatusBadge $tone={insight.tone}>
@@ -1050,23 +1165,50 @@ const CompanyDashboard = () => {
                             </S.StatusBadge>
                           </S.AiInsightHeader>
 
-                          <S.AiInsightText>{insight.summary}</S.AiInsightText>
+                          <ProgressiveText
+                            component={S.AiInsightText}
+                            text={insight.summary}
+                            animationKey={`${aiInsightsAnimationKey}-insight-summary-${insightIndex}`}
+                            enabled
+                            delayMs={insightDelay + 140}
+                          />
 
-                          {Array.isArray(insight.evidence) &&
-                          insight.evidence.length > 0 ? (
+                          {insightEvidence.length > 0 ? (
                             <S.AiEvidenceList>
-                              {insight.evidence.map((evidence) => (
-                                <li key={evidence}>{evidence}</li>
+                              {insightEvidence.map((evidence, evidenceIndex) => (
+                                <ProgressiveText
+                                  key={`${evidence}-${evidenceIndex}`}
+                                  component="li"
+                                  text={evidence}
+                                  animationKey={`${aiInsightsAnimationKey}-evidence-${insightIndex}-${evidenceIndex}`}
+                                  enabled
+                                  delayMs={
+                                    insightDelay +
+                                    240 +
+                                    evidenceIndex * AI_REVEAL_EVIDENCE_DELAY_MS
+                                  }
+                                />
                               ))}
                             </S.AiEvidenceList>
                           ) : null}
 
                           <S.AiActionBox>
                             <strong>Ação sugerida</strong>
-                            <span>{insight.recommendedAction}</span>
+                            <ProgressiveText
+                              component="span"
+                              text={insight.recommendedAction}
+                              animationKey={`${aiInsightsAnimationKey}-action-${insightIndex}`}
+                              enabled
+                              delayMs={
+                                insightDelay +
+                                320 +
+                                insightEvidence.length * AI_REVEAL_EVIDENCE_DELAY_MS
+                              }
+                            />
                           </S.AiActionBox>
                         </S.AiInsightCard>
-                      ))}
+                        );
+                      })}
                     </S.AiInsightGrid>
                   ) : (
                     <S.EmptyInline>

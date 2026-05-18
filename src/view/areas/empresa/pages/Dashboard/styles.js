@@ -1,4 +1,16 @@
-import styled, { css } from "styled-components";
+import styled, { css, keyframes } from "styled-components";
+
+const typingCursorBlink = keyframes`
+  0%,
+  45% {
+    opacity: 1;
+  }
+
+  55%,
+  100% {
+    opacity: 0;
+  }
+`;
 
 const getToneColor = (tone) => {
   switch (tone) {
@@ -384,6 +396,7 @@ export const AiSummaryText = styled.p`
   margin: 10px 0 0;
   color: #4f6c6f;
   line-height: 1.65;
+  white-space: pre-wrap;
 `;
 
 export const AiSummaryMeta = styled.div`
@@ -445,6 +458,7 @@ export const AiInsightText = styled.p`
   margin: 0;
   color: #4e6b6e;
   line-height: 1.65;
+  white-space: pre-wrap;
 `;
 
 export const AiEvidenceList = styled.ul`
@@ -456,6 +470,7 @@ export const AiEvidenceList = styled.ul`
 
   li {
     line-height: 1.55;
+    white-space: pre-wrap;
   }
 `;
 
@@ -476,7 +491,19 @@ export const AiActionBox = styled.div`
   span {
     color: #547174;
     line-height: 1.55;
+    white-space: pre-wrap;
   }
+`;
+
+export const AiTypingCursor = styled.span`
+  display: inline-block;
+  width: 0.62ch;
+  height: 1em;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: currentColor;
+  vertical-align: -0.12em;
+  animation: ${typingCursorBlink} 1s ease-in-out infinite;
 `;
 
 export const VolumeChart = styled.div`
