@@ -82,6 +82,7 @@ const formatRatingLabel = (value) =>
   typeof value === "number" ? value.toFixed(1).replace(".", ",") : "—";
 
 const formatPercentLabel = (value) => `${Math.round(value || 0)}%`;
+const clampPercent = (value) => Math.min(100, Math.max(0, Number(value) || 0));
 
 const getEmployeeAvatarUrl = (employee) => {
   const avatarUrl = employee?.avatarUrl || employee?.avatar_url || null;
@@ -824,12 +825,6 @@ const CompanyDashboard = () => {
     ...dailyVolume.map((item) => item.count),
     1
   );
-  const maxEmployeeLoad = Math.max(
-    ...employeeMetrics.map((employee) =>
-      Math.max(employee.activeCount, employee.assignedCount, employee.concludedCount)
-    ),
-    1
-  );
   const maxSubjectCount = Math.max(
     ...subjectSummary.map((item) => item.count),
     1
@@ -1389,16 +1384,7 @@ const CompanyDashboard = () => {
                         <S.ProgressTrack>
                           <S.ProgressFill
                             style={{
-                              width: `${Math.max(
-                                10,
-                                (Math.max(
-                                  employee.activeCount,
-                                  employee.assignedCount,
-                                  employee.concludedCount
-                                ) /
-                                  maxEmployeeLoad) *
-                                  100
-                              )}%`,
+                              width: `${clampPercent(employee.completionRate)}%`,
                             }}
                           />
                         </S.ProgressTrack>
