@@ -2,6 +2,8 @@
 
 Aplicação web do projeto **Resolve Mais**, construída com `React` e `Vite`. Este repositório contém a interface pública, autenticação, área do cliente, área da empresa e fluxo de atendimento.
 
+Também inclui a funcionalidade de leitura pontuada por IA para empresas, usada para gerar insights operacionais com base nos dados mais recentes disponíveis.
+
 ## Stack
 
 - `React`
@@ -122,6 +124,12 @@ http://localhost:3000
 - `/empresa/assuntos`
 - `/empresa/usuario`
 - `/empresa/administradores`
+
+## Funcionalidade de insights com IA
+
+- A tela `/empresa/insights` permite gerar uma leitura da empresa sob demanda.
+- A análise destaca sinais operacionais, riscos e ações sugeridas com apoio de IA.
+- O funcionamento depende da configuração de IA no backend.
 
 ## Integração com o backend
 
