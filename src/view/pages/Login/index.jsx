@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useSnack } from "../../../contexts/SnackContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { USER_TYPES, getHomePathByUserType, normalizeUserType } from "../../../utils/userType";
 import { authService } from "../../../services/authService";
@@ -20,6 +21,7 @@ const schema = yup.object().shape({
 const Login = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { showSnack } = useSnack();
     const { userData, isLoggedIn, logout, login } = useAuth();
     const [loading, setLoading] = useState(false);
     const redirectPath = searchParams.get("redirect") || "";
@@ -56,11 +58,17 @@ const Login = () => {
                 login({ user, token });
                 navigate(resolvePostAuthPath(user?.userType), { replace: true });
             } else {
-                alert("Erro ao fazer login. Tente novamente.");
+                showSnack({
+                    variant: "error",
+                    message: "Erro ao fazer login. Tente novamente.",
+                });
             }
         } catch (error) {
             console.error("Erro ao fazer login:", error);
-            alert("Erro ao fazer login. Verifique suas credenciais e tente novamente.");
+            showSnack({
+                variant: "error",
+                message: "Erro ao fazer login. Verifique suas credenciais e tente novamente.",
+            });
         } finally {
             setLoading(false);
         }
