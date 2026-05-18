@@ -1,5 +1,19 @@
 import { createElement, useCallback, useEffect, useMemo, useState } from "react";
-import { Sparkles } from "lucide-react";
+import {
+  Activity,
+  Building2,
+  CheckCheck,
+  CircleAlert,
+  Clock3,
+  Info,
+  Sparkles,
+  Star,
+  Ticket,
+  TriangleAlert,
+  UserCheck,
+  UserMinus,
+  Users,
+} from "lucide-react";
 
 import Button from "../../../../../components/Button";
 import LoggedHeader from "../../../../../components/LoggedHeader";
@@ -104,6 +118,13 @@ const getAiInsightToneLabel = (tone) => {
   if (tone === "warning") return "Atenção";
   if (tone === "danger") return "Risco";
   return "Leitura";
+};
+
+const getAlertToneIcon = (tone) => {
+  if (tone === "success") return CheckCheck;
+  if (tone === "warning") return TriangleAlert;
+  if (tone === "danger") return CircleAlert;
+  return Info;
 };
 
 const DEFAULT_AI_INSIGHTS_STATE = {
@@ -803,6 +824,67 @@ const CompanyDashboard = () => {
   }));
   const employeeHighlights = buildEmployeeHighlights(employeeMetrics);
   const attentionEmployees = buildAttentionEmployees(employeeMetrics);
+  const heroStats = [
+    {
+      label: "funcionário(s) cadastrado(s)",
+      value: employees.length,
+      icon: Users,
+    },
+    {
+      label: "com tickets atribuídos",
+      value: activeTeamCount,
+      icon: UserCheck,
+    },
+    {
+      label: "avaliação(ões) recebida(s)",
+      value: ratings.length,
+      icon: Star,
+    },
+  ];
+  const metricCards = [
+    {
+      label: "Total de tickets",
+      value: totalTickets,
+      helper: "Base completa de atendimentos da empresa.",
+      icon: Ticket,
+      tone: "neutral",
+    },
+    {
+      label: "Em atendimento",
+      value: inProgressTickets,
+      helper: "Tickets no fluxo humano neste momento.",
+      icon: Clock3,
+      tone: "warning",
+    },
+    {
+      label: "Concluídos",
+      value: concludedTickets,
+      helper: `${resolvedTickets} resolvido(s) e ${closedTickets} fechado(s).`,
+      icon: CheckCheck,
+      tone: "success",
+    },
+    {
+      label: "Satisfação média",
+      value: formatRatingLabel(averageRating),
+      helper: `Considerando ${ratings.length} avaliação(ões) válidas.`,
+      icon: Star,
+      tone: "neutral",
+    },
+    {
+      label: "Criados hoje",
+      value: createdToday,
+      helper: "Novos tickets registrados no dia atual.",
+      icon: Activity,
+      tone: "neutral",
+    },
+    {
+      label: "Sem responsável",
+      value: unassignedTickets,
+      helper: "Tickets ativos ainda sem funcionário definido.",
+      icon: UserMinus,
+      tone: "danger",
+    },
+  ];
   const recentTickets = [...tickets]
     .sort((left, right) => {
       const leftDate = createDateFromValue(left.createdAt)?.getTime() || 0;
@@ -928,7 +1010,9 @@ const CompanyDashboard = () => {
             <S.HeroSection>
               <S.HeroCard>
                 <S.Eyebrow>
-                  <S.EyebrowDot />
+                  <S.EyebrowDot>
+                    <Building2 size={13} strokeWidth={2.2} aria-hidden="true" />
+                  </S.EyebrowDot>
                   <span>Dashboard da empresa</span>
                 </S.Eyebrow>
 
@@ -942,18 +1026,21 @@ const CompanyDashboard = () => {
                 </S.Description>
 
                 <S.HeroStats>
-                  <S.HeroStat>
-                    <strong>{employees.length}</strong>
-                    <span>funcionário(s) cadastrado(s)</span>
-                  </S.HeroStat>
-                  <S.HeroStat>
-                    <strong>{activeTeamCount}</strong>
-                    <span>com tickets atribuídos</span>
-                  </S.HeroStat>
-                  <S.HeroStat>
-                    <strong>{ratings.length}</strong>
-                    <span>avaliação(ões) recebida(s)</span>
-                  </S.HeroStat>
+                  {heroStats.map((stat) => {
+                    const StatIcon = stat.icon;
+
+                    return (
+                      <S.HeroStat key={stat.label}>
+                        <S.HeroStatIcon aria-hidden="true">
+                          <StatIcon size={18} strokeWidth={2.1} />
+                        </S.HeroStatIcon>
+                        <S.HeroStatContent>
+                          <strong>{stat.value}</strong>
+                          <span>{stat.label}</span>
+                        </S.HeroStatContent>
+                      </S.HeroStat>
+                    );
+                  })}
                 </S.HeroStats>
 
                 <S.Actions>
@@ -970,71 +1057,49 @@ const CompanyDashboard = () => {
               </S.HeroCard>
 
               <S.OverviewCard>
-                <S.OverviewLabel>Leitura rápida</S.OverviewLabel>
+                <S.OverviewLabel>
+                  <Activity size={16} strokeWidth={2.1} aria-hidden="true" />
+                  <span>Leitura rápida</span>
+                </S.OverviewLabel>
                 <S.OverviewTitle>O que merece atenção agora</S.OverviewTitle>
 
                 <S.AlertList>
-                  {alerts.map((alert) => (
-                    <S.AlertItem key={alert.label}>
-                      <S.AlertMarker $tone={alert.tone} />
-                      <div>
-                        <S.AlertLabel>{alert.label}</S.AlertLabel>
-                        <S.AlertText>{alert.text}</S.AlertText>
-                      </div>
-                    </S.AlertItem>
-                  ))}
+                  {alerts.map((alert) => {
+                    const AlertIcon = getAlertToneIcon(alert.tone);
+
+                    return (
+                      <S.AlertItem key={alert.label}>
+                        <S.AlertMarker $tone={alert.tone} aria-hidden="true">
+                          <AlertIcon size={18} strokeWidth={2.2} />
+                        </S.AlertMarker>
+                        <div>
+                          <S.AlertLabel>{alert.label}</S.AlertLabel>
+                          <S.AlertText>{alert.text}</S.AlertText>
+                        </div>
+                      </S.AlertItem>
+                    );
+                  })}
                 </S.AlertList>
               </S.OverviewCard>
             </S.HeroSection>
 
             <S.MetricsGrid>
-              <S.MetricCard>
-                <S.MetricLabel>Total de tickets</S.MetricLabel>
-                <S.MetricValue>{totalTickets}</S.MetricValue>
-                <S.MetricHelper>
-                  Base completa de atendimentos da empresa.
-                </S.MetricHelper>
-              </S.MetricCard>
+              {metricCards.map((metric) => {
+                const MetricIcon = metric.icon;
 
-              <S.MetricCard>
-                <S.MetricLabel>Em atendimento</S.MetricLabel>
-                <S.MetricValue>{inProgressTickets}</S.MetricValue>
-                <S.MetricHelper>
-                  Tickets no fluxo humano neste momento.
-                </S.MetricHelper>
-              </S.MetricCard>
-
-              <S.MetricCard>
-                <S.MetricLabel>Concluídos</S.MetricLabel>
-                <S.MetricValue>{concludedTickets}</S.MetricValue>
-                <S.MetricHelper>
-                  {resolvedTickets} resolvido(s) e {closedTickets} fechado(s).
-                </S.MetricHelper>
-              </S.MetricCard>
-
-              <S.MetricCard>
-                <S.MetricLabel>Satisfação média</S.MetricLabel>
-                <S.MetricValue>{formatRatingLabel(averageRating)}</S.MetricValue>
-                <S.MetricHelper>
-                  Considerando {ratings.length} avaliação(ões) válidas.
-                </S.MetricHelper>
-              </S.MetricCard>
-
-              <S.MetricCard>
-                <S.MetricLabel>Criados hoje</S.MetricLabel>
-                <S.MetricValue>{createdToday}</S.MetricValue>
-                <S.MetricHelper>
-                  Novos tickets registrados no dia atual.
-                </S.MetricHelper>
-              </S.MetricCard>
-
-              <S.MetricCard>
-                <S.MetricLabel>Sem responsável</S.MetricLabel>
-                <S.MetricValue>{unassignedTickets}</S.MetricValue>
-                <S.MetricHelper>
-                  Tickets ativos ainda sem funcionário definido.
-                </S.MetricHelper>
-              </S.MetricCard>
+                return (
+                  <S.MetricCard key={metric.label}>
+                    <S.MetricCardHeader>
+                      <S.MetricLabel>{metric.label}</S.MetricLabel>
+                      <S.MetricIcon $tone={metric.tone} aria-hidden="true">
+                        <MetricIcon size={18} strokeWidth={2.1} />
+                      </S.MetricIcon>
+                    </S.MetricCardHeader>
+                    <S.MetricValue>{metric.value}</S.MetricValue>
+                    <S.MetricHelper>{metric.helper}</S.MetricHelper>
+                  </S.MetricCard>
+                );
+              })}
             </S.MetricsGrid>
 
             <S.Panel>

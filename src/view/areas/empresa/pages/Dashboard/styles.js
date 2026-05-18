@@ -97,11 +97,18 @@ export const Eyebrow = styled.span`
 `;
 
 export const EyebrowDot = styled.span`
-  width: 10px;
-  height: 10px;
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #7bf3b1 0%, #19c070 58%, #0d6b3c 100%);
+  background: radial-gradient(circle at 30% 30%, #d8ffea 0%, #9bf1c5 58%, #54cb8f 100%);
   box-shadow: 0 0 0 4px rgba(13, 107, 60, 0.12);
+
+  svg {
+    color: #0d6b3c;
+  }
 `;
 
 export const Title = styled.h1`
@@ -127,7 +134,9 @@ export const HeroStats = styled.div`
 export const HeroStat = styled.div`
   min-width: 160px;
   display: grid;
-  gap: 4px;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(18, 49, 52, 0.05);
@@ -142,6 +151,24 @@ export const HeroStat = styled.div`
     font-size: 0.9rem;
     line-height: 1.45;
   }
+`;
+
+export const HeroStatIcon = styled.span`
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: #0d6b3c;
+  background: rgba(13, 159, 93, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(13, 107, 60, 0.1);
+  flex-shrink: 0;
+`;
+
+export const HeroStatContent = styled.div`
+  display: grid;
+  gap: 4px;
 `;
 
 export const Actions = styled.div`
@@ -163,11 +190,19 @@ export const OverviewCard = styled.aside`
 `;
 
 export const OverviewLabel = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
   color: rgba(237, 255, 247, 0.72);
   font-size: 0.76rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+
+  svg {
+    color: #8af2be;
+  }
 `;
 
 export const OverviewTitle = styled.h2`
@@ -189,12 +224,16 @@ export const AlertItem = styled.div`
 `;
 
 export const AlertMarker = styled.span`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  margin-top: 6px;
-  background: ${({ $tone }) => getToneColor($tone)};
-  box-shadow: 0 0 0 6px ${({ $tone }) => getToneBackground($tone)};
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: ${({ $tone }) => getToneColor($tone)};
+  background: ${({ $tone }) => getToneBackground($tone)};
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  flex-shrink: 0;
 `;
 
 export const AlertLabel = styled.h3`
@@ -226,12 +265,39 @@ export const MetricCard = styled.article`
   box-shadow: 0 14px 26px rgba(15, 46, 47, 0.06);
 `;
 
+export const MetricCardHeader = styled.div`
+  position: relative;
+  padding-right: 54px;
+  min-height: 40px;
+`;
+
 export const MetricLabel = styled.span`
+  display: block;
+  max-width: 100%;
+  min-width: 0;
   color: #5b7779;
   font-size: 0.86rem;
   font-weight: 700;
   letter-spacing: 0.03em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
   text-transform: uppercase;
+`;
+
+export const MetricIcon = styled.span`
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: ${({ $tone }) => getToneColor($tone)};
+  background: ${({ $tone }) => getToneBackground($tone)};
+  box-shadow: inset 0 0 0 1px rgba(15, 46, 47, 0.06);
+  flex-shrink: 0;
 `;
 
 export const MetricValue = styled.strong`
