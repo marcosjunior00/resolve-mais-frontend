@@ -39,6 +39,8 @@ export const NavSection = styled.nav`
 
 export const NavList = styled.ul`
   display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -46,6 +48,8 @@ export const NavList = styled.ul`
 `;
 
 export const NavItem = styled.li`
+  display: inline-flex;
+  align-items: center;
   font-size: 1rem;
   color: ${({ $active }) => ($active ? "#10b981" : "#2c3e50")};
   font-weight: ${({ $active }) => ($active ? "700" : "400")};
@@ -54,6 +58,7 @@ export const NavItem = styled.li`
   border-bottom: ${({ $active }) =>
     $active ? "2px solid #10b981" : "2px solid transparent"};
   transition: all 0.3s ease;
+  white-space: nowrap;
 
   &:hover {
     color: #10b981;
