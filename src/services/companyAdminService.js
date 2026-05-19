@@ -54,6 +54,13 @@ export const companyAdminService = {
     return response.data;
   },
 
+  getEmployeeAiInsights: async () => {
+    const response = await api.get("/companies/my-company/employee-ai-insights", {
+      headers: withAuthHeader(),
+    });
+    return response.data;
+  },
+
   updateCompanyProfile: async (payload) => {
     const response = await api.patch("/companies/my-company/profile", payload, {
       headers: withAuthHeader(),

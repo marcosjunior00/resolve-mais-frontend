@@ -140,8 +140,9 @@ export const HeroMeta = styled.div`
 `;
 
 export const HeroBadge = styled.div`
+  position: relative;
   min-width: 140px;
-  padding: 14px 16px;
+  padding: ${({ $withAction }) => ($withAction ? "14px 56px 14px 16px" : "14px 16px")};
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -154,6 +155,35 @@ export const HeroBadge = styled.div`
   span {
     font-size: 0.82rem;
     opacity: 0.86;
+  }
+`;
+
+export const HeroBadgeActionButton = styled.button`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  border-radius: 10px;
+  padding: 0;
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.72;
   }
 `;
 
@@ -181,6 +211,205 @@ export const HeroCtaLink = styled.a`
 
   @media (max-width: 520px) {
     width: 100%;
+  }
+`;
+
+export const EmployeeAiHeaderActions = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+`;
+
+export const EmployeeAiEyebrow = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: #0d6b3c;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+`;
+
+export const EmployeeAiTitle = styled.h2`
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  line-height: 1.15;
+`;
+
+export const EmployeeAiText = styled.p`
+  margin: 10px 0 0;
+  max-width: 760px;
+  color: #456263;
+  font-size: 0.96rem;
+  line-height: 1.65;
+`;
+
+export const EmployeeAiRefreshButton = styled.button`
+  min-height: 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 11px;
+  padding: 8px 12px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: 0.2s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #10b981;
+    color: #047857;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+`;
+
+export const EmployeeAiMeta = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+`;
+
+export const EmployeeAiMetaPill = styled.span`
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(15, 46, 47, 0.06);
+  color: #476365;
+  font-size: 0.82rem;
+  font-weight: 700;
+`;
+
+export const EmployeeAiDialog = styled.div`
+  width: min(980px, 100%);
+  max-height: min(82vh, 760px);
+  background: #ffffff;
+  border: 1px solid #dce4e8;
+  border-radius: 22px;
+  box-shadow: 0 28px 60px rgba(15, 23, 42, 0.22);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+export const EmployeeAiDialogBody = styled.div`
+  padding: 18px 20px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(16, 185, 129, 0.06), transparent 28%),
+    #f8fafc;
+`;
+
+export const EmployeeAiInsightsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+`;
+
+export const EmployeeAiInsightCard = styled.article`
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(15, 46, 47, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.05);
+`;
+
+export const EmployeeAiInsightHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+export const EmployeeAiInsightTitle = styled.h3`
+  margin: 0;
+  color: #123134;
+  font-size: 1rem;
+  line-height: 1.35;
+`;
+
+export const EmployeeAiInsightText = styled.p`
+  margin: 0;
+  color: #4e696b;
+  font-size: 0.93rem;
+  line-height: 1.6;
+`;
+
+export const EmployeeAiEvidenceList = styled.ul`
+  margin: 0;
+  padding-left: 18px;
+  color: #597577;
+  font-size: 0.9rem;
+  line-height: 1.6;
+
+  li + li {
+    margin-top: 6px;
+  }
+`;
+
+export const EmployeeAiActionBox = styled.div`
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: rgba(18, 49, 52, 0.05);
+
+  strong {
+    color: #123134;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  span {
+    color: #476365;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+`;
+
+export const EmployeeAiEmptyState = styled.div`
+  padding: 16px 18px;
+  border: 1px dashed rgba(15, 46, 47, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #597577;
+  font-size: 0.92rem;
+  line-height: 1.55;
+`;
+
+export const EmployeeAiErrorBox = styled.div`
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #991b1b;
+
+  strong {
+    font-size: 0.92rem;
+  }
+
+  span {
+    font-size: 0.88rem;
+    line-height: 1.55;
   }
 `;
 

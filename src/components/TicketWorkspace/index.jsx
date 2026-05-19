@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Filter, RotateCcw } from "lucide-react";
+import { Filter, RotateCcw, Sparkles } from "lucide-react";
 
 import * as S from "./styles";
 
@@ -126,6 +126,33 @@ const getPersonAvatarUrl = (person) => {
   if (typeof avatarUrl !== "string") return "";
 
   return avatarUrl.trim();
+};
+
+const formatAverageRatingLabel = (averageRating) =>
+  typeof averageRating === "number" && Number.isFinite(averageRating)
+    ? `${averageRating.toFixed(1).replace(".", ",")}/5`
+    : "—";
+
+const getEmployeeRatingCaption = (ratingCount) => {
+  const normalizedCount = Number(ratingCount || 0);
+
+  if (normalizedCount <= 0) return "Ainda sem avaliações";
+
+  return `Sua nota atual · ${normalizedCount} avaliação(ões)`;
+};
+
+const DEFAULT_EMPLOYEE_AI_STATE = {
+  loading: false,
+  error: "",
+  data: null,
+  requested: false,
+};
+
+const getAiInsightToneLabel = (tone) => {
+  if (tone === "success") return "Força";
+  if (tone === "warning") return "Atenção";
+  if (tone === "danger") return "Risco";
+  return "Leitura";
 };
 
 const getTicketSearchValues = (ticket, field) => {
@@ -264,6 +291,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [evaluationDialog, setEvaluationDialog] = useState({ isOpen: false, mode: null });
   const [evaluationRating, setEvaluationRating] = useState(0);
   const [evaluationComment, setEvaluationComment] = useState("");
+  const [employeeAiPanelOpen, setEmployeeAiPanelOpen] = useState(false);
+  const [employeeAiState, setEmployeeAiState] = useState(DEFAULT_EMPLOYEE_AI_STATE);
 
   const isCompanyMode = mode === "company";
   const isEmployeeMode = mode === "employee";
@@ -345,6 +374,11 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       ),
     [filteredTickets, ticketPagination.endIndex, ticketPagination.startIndex]
   );
+
+  const employeeAiInsights = employeeAiState.data;
+  const employeeAiGeneratedAt = employeeAiInsights?.generatedAt
+    ? formatCompactDateTime(employeeAiInsights.generatedAt)
+    : "";
 
   const composerDisabled = useMemo(() => {
     if (!selectedTicket) return true;
@@ -432,6 +466,51 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     }
   };
 
+  const loadEmployeeAiInsights = async ({ force = false } = {}) => {
+    if (!isEmployeeMode) return null;
+    if (!force && employeeAiState.loading) return null;
+
+    try {
+      setEmployeeAiState((previous) => ({
+        ...previous,
+        loading: true,
+        error: "",
+        requested: true,
+      }));
+
+      const response = await companyAdminService.getEmployeeAiInsights();
+
+      if (response?.status >= 400) {
+        throw new Error(
+          response.message || "Não foi possível gerar a leitura da IA agora."
+        );
+      }
+
+      setEmployeeAiState({
+        loading: false,
+        error: "",
+        data: response,
+        requested: true,
+      });
+
+      return response;
+    } catch (error) {
+      const nextMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Não foi possível gerar a leitura da IA agora.";
+
+      setEmployeeAiState((previous) => ({
+        ...previous,
+        loading: false,
+        error: nextMessage,
+        requested: true,
+      }));
+
+      return null;
+    }
+  };
+
   const loadTicketContext = async (ticketId) => {
     if (!ticketId) {
       setSelectedTicket(null);
@@ -487,6 +566,13 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     loadWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (isEmployeeMode) return;
+
+    setEmployeeAiPanelOpen(false);
+    setEmployeeAiState(DEFAULT_EMPLOYEE_AI_STATE);
+  }, [isEmployeeMode]);
 
   useEffect(() => {
     const refreshWorkspaceSilently = () => {
@@ -752,6 +838,28 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const clearTicketFilters = () => {
     setTicketSearch("");
     setTicketFilters(DEFAULT_TICKET_FILTERS);
+  };
+
+  const handleToggleEmployeeAiPanel = async () => {
+    if (!isEmployeeMode) return;
+
+    setEmployeeAiPanelOpen(true);
+
+    if (!employeeAiState.requested || employeeAiState.error) {
+      await loadEmployeeAiInsights({
+        force: !employeeAiState.requested || Boolean(employeeAiState.error),
+      });
+    }
+  };
+
+  const handleRefreshEmployeeAiInsights = async () => {
+    setEmployeeAiPanelOpen(true);
+    await loadEmployeeAiInsights({ force: true });
+  };
+
+  const closeEmployeeAiPanel = () => {
+    if (employeeAiState.loading) return;
+    setEmployeeAiPanelOpen(false);
   };
 
   const handleMessagesScroll = (event) => {
@@ -1344,6 +1452,31 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
               <strong>{workspace.summary.resolvido || 0}</strong>
               <span>Aguardando fechamento</span>
             </S.HeroBadge>
+            {isEmployeeMode ? (
+              <S.HeroBadge $withAction>
+                <S.HeroBadgeActionButton
+                  type="button"
+                  onClick={handleToggleEmployeeAiPanel}
+                  disabled={employeeAiState.loading}
+                  title={
+                    employeeAiState.loading
+                      ? "Gerando leitura da IA"
+                      : "Abrir feedback da IA"
+                  }
+                  aria-label={
+                    employeeAiState.loading
+                      ? "Gerando leitura da IA"
+                      : "Abrir feedback da IA"
+                  }
+                >
+                  <Sparkles size={15} strokeWidth={2.1} aria-hidden="true" />
+                </S.HeroBadgeActionButton>
+                <strong>
+                  {formatAverageRatingLabel(workspace.summary.averageRating)}
+                </strong>
+                <span>{getEmployeeRatingCaption(workspace.summary.ratingCount)}</span>
+              </S.HeroBadge>
+            ) : null}
             {isCompanyMode ? (
               <S.HeroBadge>
                 <strong>{workspace.summary.semResponsavel || 0}</strong>
@@ -1783,6 +1916,126 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
           </S.Main>
         </S.Board>
       </S.Content>
+
+      {isEmployeeMode && employeeAiPanelOpen ? (
+        <S.HistoryDialogOverlay onClick={closeEmployeeAiPanel}>
+          <S.EmployeeAiDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="employee-ai-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.HistoryDialogHeader>
+              <div>
+                <S.EmployeeAiEyebrow>
+                  <Sparkles size={14} strokeWidth={2.2} aria-hidden="true" />
+                  <span>Leitura da IA sobre seu atendimento</span>
+                </S.EmployeeAiEyebrow>
+                <S.HistoryDialogTitle id="employee-ai-dialog-title">
+                  {employeeAiInsights?.headline ||
+                    "Feedback gerado a partir das avaliações dos clientes"}
+                </S.HistoryDialogTitle>
+                <S.HistoryDialogText>
+                  {employeeAiState.loading
+                    ? "A IA está lendo suas avaliações mais recentes para apontar elogios, reclamações e oportunidades práticas de melhoria."
+                    : employeeAiState.error
+                    ? "Não foi possível carregar a leitura agora."
+                    : employeeAiInsights?.summary ||
+                      "Abra esta leitura quando quiser revisar como os clientes percebem seus atendimentos."}
+                </S.HistoryDialogText>
+              </div>
+
+              <S.EmployeeAiHeaderActions>
+                <S.EmployeeAiRefreshButton
+                  type="button"
+                  onClick={handleRefreshEmployeeAiInsights}
+                  disabled={employeeAiState.loading}
+                >
+                  Atualizar leitura
+                </S.EmployeeAiRefreshButton>
+                <S.ActionButton
+                  type="button"
+                  $secondary
+                  onClick={closeEmployeeAiPanel}
+                  disabled={employeeAiState.loading}
+                >
+                  Fechar
+                </S.ActionButton>
+              </S.EmployeeAiHeaderActions>
+            </S.HistoryDialogHeader>
+
+            <S.EmployeeAiDialogBody>
+              {employeeAiState.loading ? (
+                <S.EmployeeAiEmptyState>Gerando leitura da IA...</S.EmployeeAiEmptyState>
+              ) : null}
+
+              {!employeeAiState.loading && employeeAiState.error ? (
+                <S.EmployeeAiErrorBox>
+                  <strong>Leitura indisponível no momento</strong>
+                  <span>{employeeAiState.error}</span>
+                </S.EmployeeAiErrorBox>
+              ) : null}
+
+              {!employeeAiState.loading && !employeeAiState.error && employeeAiInsights ? (
+                <>
+                  <S.EmployeeAiMeta>
+                    {employeeAiGeneratedAt ? (
+                      <S.EmployeeAiMetaPill>
+                        Atualizado em {employeeAiGeneratedAt}
+                      </S.EmployeeAiMetaPill>
+                    ) : null}
+                    <S.EmployeeAiMetaPill>
+                      {employeeAiInsights?.sourceData?.reviewsAnalyzed || 0} avaliação(ões)
+                    </S.EmployeeAiMetaPill>
+                    <S.EmployeeAiMetaPill>
+                      {employeeAiInsights?.sourceData?.ticketsAnalyzed || 0} ticket(s)
+                    </S.EmployeeAiMetaPill>
+                  </S.EmployeeAiMeta>
+
+                  {Array.isArray(employeeAiInsights.insights) &&
+                  employeeAiInsights.insights.length > 0 ? (
+                    <S.EmployeeAiInsightsGrid>
+                      {employeeAiInsights.insights.map((insight) => (
+                        <S.EmployeeAiInsightCard
+                          key={`${insight.title}-${insight.recommendedAction}`}
+                        >
+                          <S.EmployeeAiInsightHeader>
+                            <S.EmployeeAiInsightTitle>{insight.title}</S.EmployeeAiInsightTitle>
+                            <S.StatusPill $tone={insight.tone}>
+                              {getAiInsightToneLabel(insight.tone)}
+                            </S.StatusPill>
+                          </S.EmployeeAiInsightHeader>
+
+                          <S.EmployeeAiInsightText>{insight.summary}</S.EmployeeAiInsightText>
+
+                          {Array.isArray(insight.evidence) && insight.evidence.length > 0 ? (
+                            <S.EmployeeAiEvidenceList>
+                              {insight.evidence.map((evidence, evidenceIndex) => (
+                                <li key={`${insight.title}-evidence-${evidenceIndex}`}>
+                                  {evidence}
+                                </li>
+                              ))}
+                            </S.EmployeeAiEvidenceList>
+                          ) : null}
+
+                          <S.EmployeeAiActionBox>
+                            <strong>Ação sugerida</strong>
+                            <span>{insight.recommendedAction}</span>
+                          </S.EmployeeAiActionBox>
+                        </S.EmployeeAiInsightCard>
+                      ))}
+                    </S.EmployeeAiInsightsGrid>
+                  ) : (
+                    <S.EmployeeAiEmptyState>
+                      Ainda não há sinais suficientes para destacar elogios ou reclamações com segurança.
+                    </S.EmployeeAiEmptyState>
+                  )}
+                </>
+              ) : null}
+            </S.EmployeeAiDialogBody>
+          </S.EmployeeAiDialog>
+        </S.HistoryDialogOverlay>
+      ) : null}
 
       {!isCustomerMode && selectedTicket && isHistoryDialogOpen ? (
         <S.HistoryDialogOverlay onClick={closeHistoryDialog}>
