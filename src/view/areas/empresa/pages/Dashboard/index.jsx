@@ -4,14 +4,11 @@ import {
   Building2,
   CheckCheck,
   CircleAlert,
-  Clock3,
   Info,
   Sparkles,
   Star,
-  Ticket,
   TriangleAlert,
   UserCheck,
-  UserMinus,
   Users,
 } from "lucide-react";
 
@@ -846,42 +843,36 @@ const CompanyDashboard = () => {
       label: "Total de tickets",
       value: totalTickets,
       helper: "Base completa de atendimentos da empresa.",
-      icon: Ticket,
       tone: "neutral",
     },
     {
       label: "Em atendimento",
       value: inProgressTickets,
       helper: "Tickets no fluxo humano neste momento.",
-      icon: Clock3,
       tone: "warning",
     },
     {
       label: "Concluídos",
       value: concludedTickets,
       helper: `${resolvedTickets} resolvido(s) e ${closedTickets} fechado(s).`,
-      icon: CheckCheck,
       tone: "success",
     },
     {
       label: "Satisfação média",
       value: formatRatingLabel(averageRating),
       helper: `Considerando ${ratings.length} avaliação(ões) válidas.`,
-      icon: Star,
       tone: "neutral",
     },
     {
       label: "Criados hoje",
       value: createdToday,
       helper: "Novos tickets registrados no dia atual.",
-      icon: Activity,
       tone: "neutral",
     },
     {
       label: "Sem responsável",
       value: unassignedTickets,
       helper: "Tickets ativos ainda sem funcionário definido.",
-      icon: UserMinus,
       tone: "danger",
     },
   ];
@@ -1084,22 +1075,15 @@ const CompanyDashboard = () => {
             </S.HeroSection>
 
             <S.MetricsGrid>
-              {metricCards.map((metric) => {
-                const MetricIcon = metric.icon;
-
-                return (
-                  <S.MetricCard key={metric.label}>
-                    <S.MetricCardHeader>
-                      <S.MetricLabel>{metric.label}</S.MetricLabel>
-                      <S.MetricIcon $tone={metric.tone} aria-hidden="true">
-                        <MetricIcon size={18} strokeWidth={2.1} />
-                      </S.MetricIcon>
-                    </S.MetricCardHeader>
-                    <S.MetricValue>{metric.value}</S.MetricValue>
-                    <S.MetricHelper>{metric.helper}</S.MetricHelper>
-                  </S.MetricCard>
-                );
-              })}
+              {metricCards.map((metric) => (
+                <S.MetricCard key={metric.label}>
+                  <S.MetricCardHeader>
+                    <S.MetricLabel>{metric.label}</S.MetricLabel>
+                  </S.MetricCardHeader>
+                  <S.MetricValue>{metric.value}</S.MetricValue>
+                  <S.MetricHelper>{metric.helper}</S.MetricHelper>
+                </S.MetricCard>
+              ))}
             </S.MetricsGrid>
 
             <S.Panel>

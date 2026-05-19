@@ -266,9 +266,7 @@ export const MetricCard = styled.article`
 `;
 
 export const MetricCardHeader = styled.div`
-  position: relative;
-  padding-right: 54px;
-  min-height: 40px;
+  min-height: auto;
 `;
 
 export const MetricLabel = styled.span`
@@ -282,22 +280,6 @@ export const MetricLabel = styled.span`
   line-height: 1.15;
   overflow-wrap: anywhere;
   text-transform: uppercase;
-`;
-
-export const MetricIcon = styled.span`
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 40px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  color: ${({ $tone }) => getToneColor($tone)};
-  background: ${({ $tone }) => getToneBackground($tone)};
-  box-shadow: inset 0 0 0 1px rgba(15, 46, 47, 0.06);
-  flex-shrink: 0;
 `;
 
 export const MetricValue = styled.strong`
