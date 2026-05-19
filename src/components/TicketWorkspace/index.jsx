@@ -55,7 +55,7 @@ const upsertById = (items, nextItem) => {
 
 const getDefaultHeroText = (mode) => {
   if (mode === "company") {
-    return "Visualize os chamados da empresa, acompanhe o histórico de movimentações e troque o responsável sempre que precisar.";
+    return "Visualize os chamados da empresa, alterne entre tickets ativos e finalizados, acompanhe o histórico e troque o responsável sempre que precisar.";
   }
 
   if (mode === "employee") {
@@ -66,6 +66,14 @@ const getDefaultHeroText = (mode) => {
 };
 
 const EVALUATION_RATING_OPTIONS = [1, 2, 3, 4, 5];
+const TICKET_WORKSPACE_SCOPE = Object.freeze({
+  ACTIVE: "active",
+  CLOSED: "closed",
+});
+const TICKET_SCOPE_OPTIONS = [
+  { value: TICKET_WORKSPACE_SCOPE.ACTIVE, label: "Ativos" },
+  { value: TICKET_WORKSPACE_SCOPE.CLOSED, label: "Finalizados" },
+];
 const TICKET_SEARCH_FIELD_OPTIONS = [
   { value: "all", label: "Todos os campos" },
   { value: "protocol", label: "Protocolo" },
@@ -75,21 +83,22 @@ const TICKET_SEARCH_FIELD_OPTIONS = [
   { value: "responsible", label: "Responsável" },
   { value: "description", label: "Descrição" },
 ];
-const TICKET_DATE_FIELD_OPTIONS = [
+const BASE_TICKET_DATE_FIELD_OPTIONS = [
   { value: "updatedAt", label: "Última atualização" },
   { value: "createdAt", label: "Data de abertura" },
   { value: "acceptedAt", label: "Data de aceite" },
   { value: "resolvedAt", label: "Data de resolução" },
 ];
-const DEFAULT_TICKET_FILTERS = {
+const createDefaultTicketFilters = (scope = TICKET_WORKSPACE_SCOPE.ACTIVE) => ({
   searchField: "all",
   status: "all",
   responsible: "all",
-  dateField: "updatedAt",
+  dateField:
+    scope === TICKET_WORKSPACE_SCOPE.CLOSED ? "closedAt" : "updatedAt",
   sortDirection: "desc",
   dateFrom: "",
   dateTo: "",
-};
+});
 const DEFAULT_TICKET_PAGE = 1;
 const DEFAULT_TICKET_PAGE_SIZE = 5;
 const TICKET_PAGE_SIZE_OPTIONS = [5, 10, 20];
@@ -252,6 +261,69 @@ const getStatusFlowHelper = (ticket) => {
   return null;
 };
 
+const getTicketStatusOptions = ({ isCompanyMode, ticketScope }) => {
+  if (isCompanyMode && ticketScope === TICKET_WORKSPACE_SCOPE.CLOSED) {
+    return [
+      { value: "all", label: "Todos" },
+      { value: TICKET_STATUS.FECHADO, label: "Fechado" },
+    ];
+  }
+
+  return [
+    { value: "all", label: "Todos" },
+    { value: TICKET_STATUS.ABERTO, label: "Aberto" },
+    { value: TICKET_STATUS.PENDENTE, label: "Em atendimento" },
+    { value: TICKET_STATUS.RESOLVIDO, label: "Resolvido" },
+  ];
+};
+
+const getTicketDateFieldOptions = (ticketScope) => {
+  if (ticketScope === TICKET_WORKSPACE_SCOPE.CLOSED) {
+    return [
+      { value: "closedAt", label: "Data de fechamento" },
+      ...BASE_TICKET_DATE_FIELD_OPTIONS,
+    ];
+  }
+
+  return BASE_TICKET_DATE_FIELD_OPTIONS;
+};
+
+const getTicketSectionTitle = ({ isCompanyMode, ticketScope }) => {
+  if (isCompanyMode && ticketScope === TICKET_WORKSPACE_SCOPE.CLOSED) {
+    return "Tickets finalizados";
+  }
+
+  return "Tickets ativos";
+};
+
+const getTicketSectionText = ({ isCustomerMode, isCompanyMode, ticketScope }) => {
+  if (isCompanyMode && ticketScope === TICKET_WORKSPACE_SCOPE.CLOSED) {
+    return "Consulte chamados já encerrados, releia a conversa e audite o histórico completo sem depender da equipe operacional.";
+  }
+
+  if (isCustomerMode) {
+    return "Escolha um ticket para acompanhar a conversa e o andamento.";
+  }
+
+  return "Selecione um ticket para abrir o chat, consultar o histórico quando precisar e agir no atendimento.";
+};
+
+const getTicketSearchPlaceholder = ({ isCompanyMode, ticketScope }) => {
+  if (isCompanyMode && ticketScope === TICKET_WORKSPACE_SCOPE.CLOSED) {
+    return "Buscar tickets finalizados";
+  }
+
+  return "Buscar tickets";
+};
+
+const getTicketEmptyStateMessage = ({ isCompanyMode, ticketScope }) => {
+  if (isCompanyMode && ticketScope === TICKET_WORKSPACE_SCOPE.CLOSED) {
+    return "Nenhum ticket finalizado encontrado.";
+  }
+
+  return "Nenhum ticket disponível no momento.";
+};
+
 const TicketWorkspace = ({ mode = "customer", title }) => {
   const { userData } = useAuth();
   const { showSnack } = useSnack();
@@ -276,9 +348,12 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [messages, setMessages] = useState([]);
   const [logs, setLogs] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [ticketScope, setTicketScope] = useState(TICKET_WORKSPACE_SCOPE.ACTIVE);
   const [ticketSearch, setTicketSearch] = useState("");
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
-  const [ticketFilters, setTicketFilters] = useState(DEFAULT_TICKET_FILTERS);
+  const [ticketFilters, setTicketFilters] = useState(() =>
+    createDefaultTicketFilters()
+  );
   const [ticketPage, setTicketPage] = useState(DEFAULT_TICKET_PAGE);
   const [ticketPageSize, setTicketPageSize] = useState(DEFAULT_TICKET_PAGE_SIZE);
   const [composerText, setComposerText] = useState("");
@@ -304,6 +379,34 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const isCompanyMode = mode === "company";
   const isEmployeeMode = mode === "employee";
   const isCustomerMode = mode === "customer";
+  const workspaceScope = isCompanyMode
+    ? ticketScope
+    : TICKET_WORKSPACE_SCOPE.ACTIVE;
+  const ticketStatusOptions = useMemo(
+    () => getTicketStatusOptions({ isCompanyMode, ticketScope: workspaceScope }),
+    [isCompanyMode, workspaceScope]
+  );
+  const ticketDateFieldOptions = useMemo(
+    () => getTicketDateFieldOptions(workspaceScope),
+    [workspaceScope]
+  );
+  const ticketSectionTitle = getTicketSectionTitle({
+    isCompanyMode,
+    ticketScope: workspaceScope,
+  });
+  const ticketSectionText = getTicketSectionText({
+    isCustomerMode,
+    isCompanyMode,
+    ticketScope: workspaceScope,
+  });
+  const ticketSearchPlaceholder = getTicketSearchPlaceholder({
+    isCompanyMode,
+    ticketScope: workspaceScope,
+  });
+  const ticketEmptyStateMessage = getTicketEmptyStateMessage({
+    isCompanyMode,
+    ticketScope: workspaceScope,
+  });
 
   const filteredTickets = useMemo(() => {
     const term = normalizeFilterText(ticketSearch);
@@ -472,7 +575,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       }
 
       const [workspaceResponse, employeesResponse] = await Promise.all([
-        ticketService.getWorkspace({ scope: "active" }),
+        ticketService.getWorkspace({ scope: workspaceScope }),
         !isCustomerMode ? companyAdminService.listEmployees() : Promise.resolve(null),
       ]);
 
@@ -613,7 +716,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   useEffect(() => {
     loadWorkspace();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [workspaceScope]);
 
   useEffect(() => {
     if (isEmployeeMode) return;
@@ -642,7 +745,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isCompanyMode, selectedTicketId, searchParams]);
+  }, [isCompanyMode, searchParams, selectedTicketId, workspaceScope]);
 
   useEffect(() => {
     if (workspaceLoading) return;
@@ -904,7 +1007,18 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
   const clearTicketFilters = () => {
     setTicketSearch("");
-    setTicketFilters(DEFAULT_TICKET_FILTERS);
+    setTicketFilters(createDefaultTicketFilters(workspaceScope));
+  };
+
+  const handleTicketScopeChange = (nextScope) => {
+    if (!isCompanyMode || nextScope === workspaceScope) return;
+
+    cancelPendingBotResponse();
+    setIsFilterPanelOpen(false);
+    setTicketSearch("");
+    setTicketFilters(createDefaultTicketFilters(nextScope));
+    setTicketPage(DEFAULT_TICKET_PAGE);
+    setTicketScope(nextScope);
   };
 
   const handleToggleEmployeeAiPanel = async () => {
@@ -1623,20 +1737,36 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
         <S.Board>
           <S.Sidebar>
             <div>
-              <S.SectionTitle>Tickets ativos</S.SectionTitle>
-              <S.SectionText>
-                {isCustomerMode
-                  ? "Escolha um ticket para acompanhar a conversa e o andamento."
-                  : "Selecione um ticket para abrir o chat, consultar o histórico quando precisar e agir no atendimento."}
-              </S.SectionText>
+              <S.SectionTitle>{ticketSectionTitle}</S.SectionTitle>
+              <S.SectionText>{ticketSectionText}</S.SectionText>
             </div>
+
+            {isCompanyMode ? (
+              <S.TicketScopeSwitch
+                role="tablist"
+                aria-label="Escopo da lista de tickets"
+              >
+                {TICKET_SCOPE_OPTIONS.map((option) => (
+                  <S.TicketScopeButton
+                    key={option.value}
+                    type="button"
+                    role="tab"
+                    $active={workspaceScope === option.value}
+                    aria-selected={workspaceScope === option.value}
+                    onClick={() => handleTicketScopeChange(option.value)}
+                  >
+                    {option.label}
+                  </S.TicketScopeButton>
+                ))}
+              </S.TicketScopeSwitch>
+            ) : null}
 
             <S.FilterAnchor>
             <S.TicketFilterHeader>
               <S.SearchInput
                 value={ticketSearch}
                 onChange={(event) => setTicketSearch(event.target.value)}
-                placeholder="Buscar tickets"
+                placeholder={ticketSearchPlaceholder}
               />
               <S.FilterToggleButton
                 type="button"
@@ -1677,10 +1807,11 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                         updateTicketFilter("status", event.target.value)
                       }
                     >
-                      <option value="all">Todos</option>
-                      <option value="aberto">Aberto</option>
-                      <option value="pendente">Em atendimento</option>
-                      <option value="resolvido">Resolvido</option>
+                      {ticketStatusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
                     </S.FilterSelect>
                   </S.FilterField>
 
@@ -1706,7 +1837,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                         updateTicketFilter("dateField", event.target.value)
                       }
                     >
-                      {TICKET_DATE_FIELD_OPTIONS.map((option) => (
+                      {ticketDateFieldOptions.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -1773,7 +1904,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
               ) : null}
 
               {!workspaceLoading && filteredTickets.length === 0 ? (
-                <S.EmptyState>Nenhum ticket disponível no momento.</S.EmptyState>
+                <S.EmptyState>{ticketEmptyStateMessage}</S.EmptyState>
               ) : null}
 
               {!workspaceLoading &&

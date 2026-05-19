@@ -456,6 +456,34 @@ export const SectionText = styled.p`
   line-height: 1.5;
 `;
 
+export const TicketScopeSwitch = styled.div`
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+`;
+
+export const TicketScopeButton = styled.button`
+  min-height: 40px;
+  border: 1px solid ${({ $active }) => ($active ? "#10b981" : "#d4dce2")};
+  border-radius: 12px;
+  padding: 0 12px;
+  background: ${({ $active }) => ($active ? "#ecfdf5" : "#ffffff")};
+  color: ${({ $active }) => ($active ? "#047857" : "#334155")};
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+  transition: 0.2s ease;
+
+  &:hover {
+    border-color: #10b981;
+    color: #047857;
+  }
+`;
+
 export const FilterAnchor = styled.div`
   position: relative;
   display: grid;
