@@ -27,9 +27,9 @@ const schema = yup.object().shape({
     .string()
     .oneOf(
       PUBLIC_REGISTER_USER_TYPE_OPTIONS.map((option) => option.value),
-      "Tipo de usuario inválido",
+      "Tipo de usuário inválido",
     )
-    .required("Tipo de usuario é obrigatório"),
+    .required("Tipo de usuário é obrigatório"),
 
   name: yup.string().when("userType", {
     is: (value) => value !== USER_TYPES.EMPRESA,
@@ -82,7 +82,7 @@ const schema = yup.object().shape({
 
   companyDescription: yup.string().when("userType", {
     is: USER_TYPES.EMPRESA,
-    then: (rule) => rule.required("Descricao é obrigatória"),
+    then: (rule) => rule.required("Descrição é obrigatória"),
     otherwise: (rule) => rule.nullable(),
   }),
 
@@ -288,7 +288,7 @@ const Register = () => {
 
           <S.Form onSubmit={handleSubmit(onSubmit)}>
             <S.UserTypeGroup>
-              <S.UserTypeLabel>Tipo de usuario:</S.UserTypeLabel>
+              <S.UserTypeLabel>Tipo de usuário:</S.UserTypeLabel>
               <S.UserTypeButtons>
                 {PUBLIC_REGISTER_USER_TYPE_OPTIONS.map((option) => (
                   <S.UserTypeOption key={option.value}>
@@ -362,7 +362,7 @@ const Register = () => {
                 />
 
                 <Input
-                  label="Descricao:"
+                  label="Descrição:"
                   placeholder="Descreva brevemente a empresa"
                   type="text"
                   register={register("companyDescription")}
