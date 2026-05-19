@@ -113,6 +113,9 @@ const getDateKey = (value) => {
   return `${year}-${month}-${day}`;
 };
 
+const getRedirectEmployeeLabel = (employee) =>
+  employee?.name ? String(employee.name).trim() : "";
+
 const getTicketDateValue = (ticket, field) => {
   const value = ticket?.[field] || ticket?.updatedAt || ticket?.createdAt || "";
   const parsedDate = new Date(value);
@@ -258,6 +261,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const botStreamAbortControllerRef = useRef(null);
   const pendingBotMessageRef = useRef(null);
   const promptedEvaluationKeysRef = useRef(new Set());
+  const suppressExpectedStreamLossRef = useRef(false);
 
   const [workspace, setWorkspace] = useState({
     tickets: [],
@@ -279,6 +283,9 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const [ticketPageSize, setTicketPageSize] = useState(DEFAULT_TICKET_PAGE_SIZE);
   const [composerText, setComposerText] = useState("");
   const [selectedAssigneeId, setSelectedAssigneeId] = useState("");
+  const [isRedirectDialogOpen, setIsRedirectDialogOpen] = useState(false);
+  const [redirectSearch, setRedirectSearch] = useState("");
+  const [redirectEmployeeId, setRedirectEmployeeId] = useState("");
   const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
   const [isTicketDetailsDialogOpen, setIsTicketDetailsDialogOpen] = useState(false);
   const [isReopenConfirmationOpen, setIsReopenConfirmationOpen] = useState(false);
@@ -391,6 +398,47 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     return !(canUseChatbot || canSendHuman);
   }, [actionLoading, botStreaming, detailLoading, isCompanyMode, selectedTicket]);
 
+  const canManageAssignee = Boolean(
+    selectedTicket &&
+      ((isCompanyMode && selectedTicket.permissions?.canAssign) ||
+        (isEmployeeMode && selectedTicket.permissions?.canRedirect))
+  );
+  const currentAssigneeId = String(selectedTicket?.assignedEmployee?.id || "");
+  const normalizedSelectedAssigneeId = String(selectedAssigneeId || "");
+  const assigneeActionDisabled =
+    actionLoading ||
+    !canManageAssignee ||
+    !employees.length ||
+    normalizedSelectedAssigneeId === currentAssigneeId ||
+    (isEmployeeMode && !normalizedSelectedAssigneeId);
+  const redirectCandidates = useMemo(
+    () =>
+      employees.filter(
+        (employee) => Number(employee?.id || 0) !== Number(userData?.id || 0)
+      ),
+    [employees, userData?.id]
+  );
+  const filteredRedirectCandidates = useMemo(() => {
+    const term = normalizeFilterText(redirectSearch);
+
+    return redirectCandidates.filter((employee) => {
+      if (!term) return true;
+
+      return [employee?.name, employee?.email, employee?.jobTitle].some((value) =>
+        normalizeFilterText(value).includes(term)
+      );
+    });
+  }, [redirectCandidates, redirectSearch]);
+  const selectedRedirectEmployee =
+    redirectCandidates.find(
+      (employee) => String(employee.id) === String(redirectEmployeeId)
+    ) || null;
+  const redirectConfirmDisabled =
+    actionLoading ||
+    !isEmployeeMode ||
+    !selectedTicket?.permissions?.canRedirect ||
+    !selectedRedirectEmployee;
+
   const isBotStreamAbortError = (error) =>
     error?.name === "AbortError" ||
     error?.code === 20 ||
@@ -425,7 +473,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
       const [workspaceResponse, employeesResponse] = await Promise.all([
         ticketService.getWorkspace({ scope: "active" }),
-        isCompanyMode ? companyAdminService.listEmployees() : Promise.resolve(null),
+        !isCustomerMode ? companyAdminService.listEmployees() : Promise.resolve(null),
       ]);
 
       setWorkspace({
@@ -645,6 +693,9 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   }, [messages, selectedTicketId, botStreaming]);
 
   useEffect(() => {
+    setIsRedirectDialogOpen(false);
+    setRedirectSearch("");
+    setRedirectEmployeeId("");
     setIsHistoryDialogOpen(false);
     setIsTicketDetailsDialogOpen(false);
     setIsReopenConfirmationOpen(false);
@@ -698,6 +749,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
 
   useEffect(() => {
     const hasOpenDialog =
+      isRedirectDialogOpen ||
       isHistoryDialogOpen ||
       isTicketDetailsDialogOpen ||
       isReopenConfirmationOpen ||
@@ -709,7 +761,11 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     const handleEscapeKey = (event) => {
       if (event.key !== "Escape") return;
 
-      if (isTicketDetailsDialogOpen) {
+      if (isRedirectDialogOpen && !actionLoading) {
+        setIsRedirectDialogOpen(false);
+        setRedirectSearch("");
+        setRedirectEmployeeId("");
+      } else if (isTicketDetailsDialogOpen) {
         setIsTicketDetailsDialogOpen(false);
       } else if (isReopenConfirmationOpen && !actionLoading) {
         setIsReopenConfirmationOpen(false);
@@ -733,6 +789,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   }, [
     actionLoading,
     evaluationDialog.isOpen,
+    isRedirectDialogOpen,
     isHistoryDialogOpen,
     isReopenConfirmationOpen,
     isTicketDetailsDialogOpen,
@@ -807,6 +864,16 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       })
       .catch((error) => {
         if (error?.name === "AbortError") return;
+
+        if (
+          suppressExpectedStreamLossRef.current &&
+          /nao esta mais disponivel para o seu perfil/i.test(
+            String(error?.message || "")
+          )
+        ) {
+          suppressExpectedStreamLossRef.current = false;
+          return;
+        }
 
         if (error?.message) {
           showSnack({
@@ -998,6 +1065,30 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     setIsTicketDetailsDialogOpen(false);
   };
 
+  const openRedirectDialog = () => {
+    setRedirectSearch("");
+    setRedirectEmployeeId("");
+    setIsRedirectDialogOpen(true);
+  };
+
+  const closeRedirectDialog = () => {
+    if (actionLoading) return;
+
+    setIsRedirectDialogOpen(false);
+    setRedirectSearch("");
+    setRedirectEmployeeId("");
+  };
+
+  const handleRedirectSearchChange = (event) => {
+    setRedirectSearch(event.target.value);
+    setRedirectEmployeeId("");
+  };
+
+  const handleSelectRedirectEmployee = (employee) => {
+    setRedirectEmployeeId(String(employee.id));
+    setRedirectSearch(getRedirectEmployeeLabel(employee));
+  };
+
   const openReopenConfirmation = () => {
     setIsReopenConfirmationOpen(true);
   };
@@ -1014,6 +1105,28 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   };
 
   const applyActionResult = async (response, successMessage) => {
+    if (response?.ticketStillVisibleToRequester === false) {
+      suppressExpectedStreamLossRef.current = true;
+
+      try {
+        setSelectedTicket(null);
+        setConversation(null);
+        setMessages([]);
+        setLogs([]);
+        setSelectedAssigneeId("");
+        setSelectedTicketId("");
+        await loadWorkspace({ silent: true });
+      } finally {
+        suppressExpectedStreamLossRef.current = false;
+      }
+
+      showSnack({
+        variant: "success",
+        message: successMessage,
+      });
+      return;
+    }
+
     if (response?.ticket) {
       setSelectedTicket(response.ticket);
       setWorkspace((previous) => ({
@@ -1043,13 +1156,29 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       }
 
       await applyActionResult(response, successMessage);
+      return { success: true, response };
     } catch (error) {
       showSnack({
         variant: "error",
         message: error?.response?.data?.message || error?.message || "Não foi possível concluir a ação.",
       });
+      return { success: false, error };
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleConfirmRedirect = async () => {
+    if (!selectedTicket?.id || !selectedRedirectEmployee) return;
+
+    const result = await runTicketAction(
+      () =>
+        ticketService.updateAssignment(selectedTicket.id, selectedRedirectEmployee.id),
+      "Ticket redirecionado com sucesso."
+    );
+
+    if (result?.success) {
+      closeRedirectDialog();
     }
   };
 
@@ -1716,7 +1845,9 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                             setSelectedAssigneeId(event.target.value)
                           }
                         >
-                          <option value="">Sem responsável</option>
+                          {isCompanyMode ? (
+                            <option value="">Sem responsável</option>
+                          ) : null}
                           {employees.map((employee) => (
                             <option key={employee.id} value={employee.id}>
                               {employee.name}
@@ -1736,11 +1867,22 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
                               "Responsável atualizado."
                             )
                           }
-                          disabled={actionLoading}
+                          disabled={assigneeActionDisabled}
                         >
                           Salvar responsável
                         </S.ActionButton>
                       </>
+                    ) : null}
+
+                    {isEmployeeMode && selectedTicket.permissions?.canRedirect ? (
+                      <S.ActionButton
+                        type="button"
+                        $secondary
+                        onClick={openRedirectDialog}
+                        disabled={actionLoading || redirectCandidates.length === 0}
+                      >
+                        Redirecionar ticket
+                      </S.ActionButton>
                     ) : null}
 
                     {renderActionButtons()}
@@ -2034,6 +2176,115 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
               ) : null}
             </S.EmployeeAiDialogBody>
           </S.EmployeeAiDialog>
+        </S.HistoryDialogOverlay>
+      ) : null}
+
+      {isEmployeeMode && selectedTicket && isRedirectDialogOpen ? (
+        <S.HistoryDialogOverlay onClick={closeRedirectDialog}>
+          <S.HistoryDialog
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="ticket-redirect-dialog-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <S.HistoryDialogHeader>
+              <div>
+                <S.HistoryDialogTitle id="ticket-redirect-dialog-title">
+                  Redirecionar ticket{" "}
+                  {selectedTicket.protocol || buildTicketProtocol(selectedTicket.id)}
+                </S.HistoryDialogTitle>
+                <S.HistoryDialogText>
+                  Escolha outro funcionário para assumir este atendimento. Após
+                  confirmar, o ticket sai da sua fila.
+                </S.HistoryDialogText>
+              </div>
+
+              <S.ActionButton
+                type="button"
+                $secondary
+                onClick={closeRedirectDialog}
+                disabled={actionLoading}
+              >
+                Cancelar
+              </S.ActionButton>
+            </S.HistoryDialogHeader>
+
+            <S.HistoryDialogBody>
+              <S.FilterField>
+                <S.FilterLabel>Funcionário</S.FilterLabel>
+                <S.RedirectCombobox>
+                  <S.FilterInput
+                    value={redirectSearch}
+                    onChange={handleRedirectSearchChange}
+                    placeholder="Pesquise e selecione o novo responsável"
+                    autoFocus
+                  />
+
+                  {redirectCandidates.length > 0 ? (
+                    <S.RedirectOptionList>
+                      {filteredRedirectCandidates.map((employee) => (
+                        <S.RedirectOptionButton
+                          key={employee.id}
+                          type="button"
+                          $active={String(employee.id) === String(redirectEmployeeId)}
+                          onClick={() => handleSelectRedirectEmployee(employee)}
+                        >
+                          <strong>{employee.name}</strong>
+                          <S.RedirectOptionMeta>
+                            {employee.jobTitle || "Cargo não informado"}
+                            {employee.email ? ` · ${employee.email}` : ""}
+                          </S.RedirectOptionMeta>
+                        </S.RedirectOptionButton>
+                      ))}
+
+                      {filteredRedirectCandidates.length === 0 ? (
+                        <S.RedirectOptionEmpty>
+                          Nenhum funcionário encontrado com essa busca.
+                        </S.RedirectOptionEmpty>
+                      ) : null}
+                    </S.RedirectOptionList>
+                  ) : null}
+                </S.RedirectCombobox>
+              </S.FilterField>
+
+              {selectedRedirectEmployee ? (
+                <S.MetaItem>
+                  <S.MetaLabel>Confirmação</S.MetaLabel>
+                  <S.MetaValue>{selectedRedirectEmployee.name}</S.MetaValue>
+                  <S.LogText>
+                    {selectedRedirectEmployee.jobTitle || "Cargo não informado"}
+                    {selectedRedirectEmployee.email
+                      ? ` · ${selectedRedirectEmployee.email}`
+                      : ""}
+                  </S.LogText>
+                </S.MetaItem>
+              ) : null}
+
+              {!redirectCandidates.length ? (
+                <S.EmptyState>
+                  Não há outro funcionário disponível para receber este ticket.
+                </S.EmptyState>
+              ) : null}
+
+              <S.EvaluationActions>
+                <S.ActionButton
+                  type="button"
+                  $secondary
+                  onClick={closeRedirectDialog}
+                  disabled={actionLoading}
+                >
+                  Voltar
+                </S.ActionButton>
+                <S.ActionButton
+                  type="button"
+                  onClick={handleConfirmRedirect}
+                  disabled={redirectConfirmDisabled}
+                >
+                  {actionLoading ? "Redirecionando..." : "Confirmar redirecionamento"}
+                </S.ActionButton>
+              </S.EvaluationActions>
+            </S.HistoryDialogBody>
+          </S.HistoryDialog>
         </S.HistoryDialogOverlay>
       ) : null}
 

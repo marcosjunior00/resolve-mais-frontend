@@ -577,6 +577,60 @@ export const FilterInput = styled.input`
   }
 `;
 
+export const RedirectCombobox = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const RedirectOptionList = styled.div`
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+  padding-top: 2px;
+`;
+
+export const RedirectOptionButton = styled.button`
+  width: 100%;
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid ${({ $active }) => ($active ? "#10b981" : "#dce4e8")};
+  border-radius: 12px;
+  background: ${({ $active }) => ($active ? "#ecfdf5" : "#ffffff")};
+  text-align: left;
+  cursor: pointer;
+  transition: 0.2s ease;
+
+  strong {
+    color: #0f172a;
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+
+  &:hover {
+    border-color: #10b981;
+    transform: translateY(-1px);
+  }
+`;
+
+export const RedirectOptionMeta = styled.span`
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+`;
+
+export const RedirectOptionEmpty = styled.div`
+  padding: 14px 12px;
+  border: 1px dashed #dce4e8;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 0.86rem;
+  line-height: 1.5;
+`;
+
 export const FilterFooter = styled.div`
   display: flex;
   align-items: center;
