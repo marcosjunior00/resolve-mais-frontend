@@ -11,6 +11,7 @@ import CpfInput from "../../../components/CpfInput";
 import CnpjInput from "../../../components/CnpjInput";
 import * as S from "./styles";
 import { useAuth } from "../../../contexts/AuthContext";
+import { useSnack } from "../../../contexts/SnackContext";
 import { api } from "../../../services/api";
 import Logo from "../../../../assets/images/logo.png";
 import RegisterImage from "../../../../assets/images/register.png";
@@ -144,8 +145,18 @@ const schema = yup.object().shape({
   }),
 });
 
+const DUPLICATE_EMAIL_MESSAGES = new Set([
+  "User already exists",
+  "Admin e-mail already registered",
+  "E-mail already registered",
+]);
+
+const DEFAULT_REGISTER_ERROR_MESSAGE =
+  "Não foi possível concluir o cadastro. Verifique os dados e tente novamente.";
+
 const Register = () => {
   const { userData, isLoggedIn, logout, login } = useAuth();
+  const { showSnack } = useSnack();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -173,6 +184,9 @@ const Register = () => {
     formState: { errors },
     control,
     watch,
+    clearErrors,
+    setError,
+    setFocus,
     setValue,
   } = useForm({
     resolver: yupResolver(schema),
@@ -206,6 +220,7 @@ const Register = () => {
 
   const onSubmit = async (data) => {
     setLoading(true);
+    clearErrors(["email", "adminEmail"]);
 
     try {
       let payload = null;
@@ -242,11 +257,41 @@ const Register = () => {
         login({ user, token });
         navigate(resolvePostAuthPath(user?.userType), { replace: true });
       } else {
-        alert("Erro ao fazer cadastro. Tente novamente.");
+        showSnack({
+          variant: "error",
+          message: DEFAULT_REGISTER_ERROR_MESSAGE,
+        });
       }
     } catch (error) {
       console.error("Erro ao fazer cadastro:", error);
-      alert("Erro ao fazer cadastro. Verifique os dados e tente novamente.");
+      const apiMessage = String(
+        error?.response?.data?.message || error?.response?.data?.error || "",
+      ).trim();
+      const duplicateEmailField = companySelected ? "adminEmail" : "email";
+      const duplicateEmailMessage = companySelected
+        ? "Este e-mail do administrador já está cadastrado. Faça login com a conta existente ou use outro e-mail."
+        : "Este e-mail já está cadastrado. Faça login ou use outro e-mail.";
+
+      if (DUPLICATE_EMAIL_MESSAGES.has(apiMessage)) {
+        setError(duplicateEmailField, {
+          type: "server",
+          message: duplicateEmailMessage,
+        });
+        setFocus(duplicateEmailField);
+        showSnack({
+          variant: "error",
+          message: duplicateEmailMessage,
+          actionLabel: "Ir para login",
+          onAction: () => navigate(loginPath),
+          duration: 5000,
+        });
+        return;
+      }
+
+      showSnack({
+        variant: "error",
+        message: DEFAULT_REGISTER_ERROR_MESSAGE,
+      });
     } finally {
       setLoading(false);
     }
