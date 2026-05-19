@@ -334,6 +334,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
   const pendingBotMessageRef = useRef(null);
   const promptedEvaluationKeysRef = useRef(new Set());
   const suppressExpectedStreamLossRef = useRef(false);
+  const ticketContextRequestIdRef = useRef(0);
 
   const [workspace, setWorkspace] = useState({
     tickets: [],
@@ -662,34 +663,54 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     }
   };
 
-  const loadTicketContext = async (ticketId) => {
+  const loadTicketContext = async (
+    ticketId,
+    {
+      silent = false,
+      showError = true,
+    } = {}
+  ) => {
     if (!ticketId) {
-      setSelectedTicket(null);
-      setConversation(null);
-      setMessages([]);
-      setLogs([]);
-      setSelectedAssigneeId("");
+      if (!silent) {
+        setSelectedTicket(null);
+        setConversation(null);
+        setMessages([]);
+        setLogs([]);
+        setSelectedAssigneeId("");
+      }
       return;
     }
 
+    const requestId = ticketContextRequestIdRef.current + 1;
+    ticketContextRequestIdRef.current = requestId;
+    const shouldLoadLogs = !isCustomerMode && (!silent || isHistoryDialogOpen);
+
     try {
-      setDetailLoading(true);
+      if (!silent) {
+        setDetailLoading(true);
+      }
 
       const [detailResponse, messagesResponse, logsResponse] = await Promise.all([
-        ticketService.getTicketDetail(ticketId),
+        silent ? Promise.resolve(null) : ticketService.getTicketDetail(ticketId),
         ticketService.getTicketMessages(ticketId),
-        isCustomerMode
-          ? Promise.resolve({ logs: [] })
-          : ticketService.getTicketLogs(ticketId),
+        shouldLoadLogs
+          ? ticketService.getTicketLogs(ticketId)
+          : Promise.resolve(null),
       ]);
 
-      const detailTicket = detailResponse.ticket || messagesResponse.ticket || null;
+      if (requestId !== ticketContextRequestIdRef.current) return;
+
+      const detailTicket =
+        detailResponse?.ticket || messagesResponse.ticket || null;
 
       setSelectedTicket(detailTicket);
       setConversation(messagesResponse.conversation || null);
       setMessages(messagesResponse.messages || []);
-      setLogs(logsResponse.logs || []);
       setSelectedAssigneeId(detailTicket?.assignedEmployee?.id || "");
+
+      if (shouldLoadLogs) {
+        setLogs(logsResponse?.logs || []);
+      }
 
       setWorkspace((previous) => ({
         ...previous,
@@ -698,18 +719,24 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
         ),
       }));
     } catch (error) {
-      setSelectedTicket(null);
-      setConversation(null);
-      setMessages([]);
-      setLogs([]);
-      setSelectedAssigneeId("");
-      showSnack({
+      if (!silent) {
+        setSelectedTicket(null);
+        setConversation(null);
+        setMessages([]);
+        setLogs([]);
+        setSelectedAssigneeId("");
+      }
+      if (showError) {
+        showSnack({
         variant: "error",
         message:
           error?.response?.data?.message || "Não foi possível carregar o ticket.",
       });
+      }
     } finally {
-      setDetailLoading(false);
+      if (!silent && requestId === ticketContextRequestIdRef.current) {
+        setDetailLoading(false);
+      }
     }
   };
 
@@ -759,6 +786,39 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     loadTicketContext(selectedTicketId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedTicketId, workspaceLoading]);
+
+  useEffect(() => {
+    if (!selectedTicketId) return undefined;
+
+    const refreshTicketContextSilently = () => {
+      if (document.visibilityState === "hidden") return;
+      if (botStreaming || actionLoading || detailLoading) return;
+
+      loadTicketContext(selectedTicketId, {
+        silent: true,
+        showError: false,
+      });
+    };
+
+    const intervalId = window.setInterval(refreshTicketContextSilently, 8000);
+    const handleFocus = () => refreshTicketContextSilently();
+    const handleVisibilityChange = () => refreshTicketContextSilently();
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [
+    actionLoading,
+    botStreaming,
+    detailLoading,
+    isHistoryDialogOpen,
+    selectedTicketId,
+  ]);
 
   useEffect(
     () => () => {
@@ -962,7 +1022,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
           setLogs((previous) => upsertById(previous, log));
         },
         onError: () => {
-          loadWorkspace({ silent: true });
+          loadWorkspace({ silent: true, showError: false });
+          loadTicketContext(selectedTicketId, { silent: true, showError: false });
         },
       })
       .catch((error) => {
@@ -978,12 +1039,8 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
           return;
         }
 
-        if (error?.message) {
-          showSnack({
-            variant: "error",
-            message: error.message,
-          });
-        }
+        loadWorkspace({ silent: true, showError: false });
+        loadTicketContext(selectedTicketId, { silent: true, showError: false });
       });
 
     return () => controller.abort();
@@ -1213,9 +1270,12 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
     setIsReopenConfirmationOpen(false);
   };
 
-  const refreshSelectedTicket = async () => {
+  const refreshSelectedTicket = async ({
+    silent = false,
+    showError = true,
+  } = {}) => {
     if (!selectedTicketId) return;
-    await loadTicketContext(selectedTicketId);
+    await loadTicketContext(selectedTicketId, { silent, showError });
   };
 
   const applyActionResult = async (response, successMessage) => {
@@ -1273,7 +1333,7 @@ const TicketWorkspace = ({ mode = "customer", title }) => {
       return { success: true, response };
     } catch (error) {
       showSnack({
-        variant: "error",
+          variant: "error",
         message: error?.response?.data?.message || error?.message || "Não foi possível concluir a ação.",
       });
       return { success: false, error };
